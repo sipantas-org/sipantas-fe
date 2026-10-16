@@ -41,6 +41,18 @@ const router = createRouter({
           meta: { title: 'Dashboard' },
         },
         {
+          path: 'master/a',
+          name: 'master-a',
+          component: () => import('@/views/PlaceholderView.vue'),
+          meta: { title: 'Master A', roles: ['admin'] },
+        },
+        {
+          path: 'master/b',
+          name: 'master-b',
+          component: () => import('@/views/PlaceholderView.vue'),
+          meta: { title: 'Master B', roles: ['admin'] },
+        },
+        {
           path: 'surveyors',
           name: 'surveyors',
           component: () => import('@/views/PlaceholderView.vue'),
