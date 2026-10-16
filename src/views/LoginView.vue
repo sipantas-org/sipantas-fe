@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RiLoader4Line, RiMapPinUserLine, RiShieldUserLine } from '@remixicon/vue'
 import { computed, reactive, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import AuthShell from '@/components/AuthShell.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
 import { Button } from '@/components/ui/button'
@@ -25,6 +25,7 @@ const content = {
 } as const
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 
 const role = computed<Role>(() => {
@@ -56,6 +57,7 @@ async function onSubmit() {
   try {
     await auth.login(role.value, { email: form.email.trim(), password: form.password })
     success.value = true
+    await router.push({ name: 'dashboard' })
   }
   catch {
     errors.form = 'Gagal masuk. Periksa kembali email dan kata sandi Anda.'
