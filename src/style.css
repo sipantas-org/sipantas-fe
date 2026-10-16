@@ -82,6 +82,19 @@
     --sidebar-ring: oklch(0.737 0.021 106.9);
 }
 
+/* Surveyor theme: teal overrides the violet (admin) defaults in :root. */
+[data-theme="surveyor"] {
+    --primary: oklch(0.511 0.096 186.391);
+    --primary-foreground: oklch(0.984 0.014 180.72);
+    --chart-1: oklch(0.855 0.138 181.071);
+    --chart-2: oklch(0.704 0.14 182.503);
+    --chart-3: oklch(0.6 0.118 184.704);
+    --chart-4: oklch(0.511 0.096 186.391);
+    --chart-5: oklch(0.437 0.078 188.216);
+    --sidebar-primary: oklch(0.6 0.118 184.704);
+    --sidebar-primary-foreground: oklch(0.984 0.014 180.72);
+}
+
 .dark {
     --background: oklch(0.153 0.006 107.1);
     --foreground: oklch(0.988 0.003 106.5);
