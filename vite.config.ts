@@ -8,8 +8,7 @@ export default defineConfig({
   plugins: [vue(), tailwindcss()],
   build: {
     rolldownOptions: {
-      // @remixicon/vue memanggil defineComponent untuk ribuan ikon di satu file;
-      // tanpa ini seluruh ikon ikut ter-bundle walau hanya sedikit yang dipakai.
+      // Without this, @remixicon/vue is not tree-shaken and bundles every icon.
       treeshake: { manualPureFunctions: ['defineComponent'] },
     },
   },
