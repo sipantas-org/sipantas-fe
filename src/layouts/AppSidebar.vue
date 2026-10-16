@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { RiMapPinUserLine, RiShieldUserLine } from '@remixicon/vue'
+import { RiMapPinUserLine, RiMoonLine, RiShieldUserLine, RiSunLine } from '@remixicon/vue'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
@@ -14,7 +15,9 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { Switch } from '@/components/ui/switch'
 import { NAV_ITEMS, ROLE_LABEL } from '@/lib/navigation'
+import { isDark, toggleDark } from '@/lib/mode'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
@@ -70,6 +73,16 @@ function onNavigate() {
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarContent>
+
+    <SidebarFooter class="h-16 justify-center border-t px-2 py-0">
+      <div class="flex items-center gap-3 px-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+        <component :is="isDark ? RiMoonLine : RiSunLine" class="size-5 shrink-0 group-data-[collapsible=icon]:hidden" />
+        <label for="mode-toggle" class="flex-1 truncate text-sm group-data-[collapsible=icon]:hidden">
+          {{ isDark ? 'Mode Gelap' : 'Mode Terang' }}
+        </label>
+        <Switch id="mode-toggle" :model-value="isDark" aria-label="Mode gelap" @update:model-value="toggleDark" />
+      </div>
+    </SidebarFooter>
 
     <SidebarRail />
   </Sidebar>
