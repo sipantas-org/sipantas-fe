@@ -10,7 +10,7 @@ import AppSidebar from './AppSidebar.vue'
     <AppSidebar />
     <SidebarInset>
       <AppNavbar />
-      <main class="flex-1 p-4 md:p-8">
+      <main class="flex-1 p-4 shadow-[inset_8px_8px_10px_-8px_rgb(0_0_0/0.13)] md:p-6">
         <RouterView />
       </main>
       <AppFooter />

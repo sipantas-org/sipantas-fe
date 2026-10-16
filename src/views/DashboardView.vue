@@ -11,10 +11,10 @@ const roleLabel = computed(() => (auth.role ? ROLE_LABEL[auth.role] : ''))
 <template>
   <div class="flex flex-col gap-4">
     <div>
-      <h1 class="text-2xl font-semibold">
+      <h1 class="text-xl font-semibold">
         Selamat datang, {{ roleLabel }}
       </h1>
-      <p class="text-muted-foreground text-base">
+      <p class="text-muted-foreground text-sm">
         Ringkasan aplikasi akan tampil di sini.
       </p>
     </div>

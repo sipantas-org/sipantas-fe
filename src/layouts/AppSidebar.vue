@@ -7,7 +7,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -37,7 +36,7 @@ function onNavigate() {
 
 <template>
   <Sidebar collapsible="icon">
-    <SidebarHeader>
+    <SidebarHeader class="h-16 justify-center border-b px-2 py-0">
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" as-child>
@@ -57,9 +56,8 @@ function onNavigate() {
 
     <SidebarContent>
       <SidebarGroup>
-        <SidebarGroupLabel>Menu</SidebarGroupLabel>
         <SidebarGroupContent>
-          <SidebarMenu>
+          <SidebarMenu class="mt-4">
             <SidebarMenuItem v-for="item in items" :key="item.to">
               <SidebarMenuButton as-child :is-active="isActive(item.to)" :tooltip="item.label">
                 <RouterLink :to="item.to" @click="onNavigate">
