@@ -18,11 +18,34 @@ export function setTokenGetter(getter: () => string | null) {
   tokenGetter = getter
 }
 
+// Called when a request using the session token gets 401 (expired or invalid token). Set in main.ts.
+let unauthorizedHandler: () => void = () => {}
+
+export function setUnauthorizedHandler(handler: () => void) {
+  unauthorizedHandler = handler
+}
+
+// Shape of a paginated list, after unwrap().
+export interface Paginated<T> {
+  items: T[]
+  meta: { page: number, limit: number, total: number, totalPages: number }
+}
+
+// Paginated list URL; `status` is an optional query filter.
+export function listUrl(base: string, { status, page, limit }: { status?: string, page: number, limit: number }) {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+  if (status)
+    params.set('status', status)
+  return `${base}?${params}`
+}
+
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
   body?: unknown
   // undefined = use the session token, null = send none.
   token?: string | null
+  // false = a 401 is an expected answer (e.g. wrong current password), so it must not log the user out.
+  logoutOn401?: boolean
 }
 
 // The backend looks like NestJS: errors are { statusCode, message: string | string[] }.
@@ -45,7 +68,7 @@ function unwrap<T>(data: unknown): T {
 }
 
 // JSON request. Throws ApiError for network failures and non-2xx responses.
-export async function request<T>(path: string, { method = 'GET', body, token }: RequestOptions = {}): Promise<T> {
+export async function request<T>(path: string, { method = 'GET', body, token, logoutOn401 = true }: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (body !== undefined)
     headers['Content-Type'] = 'application/json'
@@ -68,6 +91,8 @@ export async function request<T>(path: string, { method = 'GET', body, token }: 
   const data: unknown = await response.json().catch(() => null)
 
   if (!response.ok) {
+    if (response.status === 401 && logoutOn401 && token === undefined && bearer)
+      unauthorizedHandler()
     const message = response.status >= 500
       ? 'Terjadi kesalahan pada server. Silakan coba lagi.'
       : extractMessage(data) ?? `Permintaan gagal (${response.status}).`

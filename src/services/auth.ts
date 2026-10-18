@@ -33,7 +33,9 @@ export interface AdminUser extends UserBase {
 
 export interface SurveyorUser extends UserBase {
   idProvince: string
+  provinceName?: string
   idCity: string
+  cityName?: string
 }
 
 export type User = AdminUser | SurveyorUser

@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Switch } from '@/components/ui/switch'
 import { isDark, toggleDark } from '@/lib/mode'
-import { NAV_ITEMS, ROLE_LABEL } from '@/lib/navigation'
+import { ROLE_LABEL, navFor } from '@/lib/navigation'
 import { useAuthStore } from '@/stores/auth'
 import type { NavItem } from '@/lib/navigation'
 
@@ -29,7 +29,7 @@ const route = useRoute()
 const auth = useAuthStore()
 const { isMobile, setOpenMobile, state, setOpen } = useSidebar()
 
-const items = computed(() => NAV_ITEMS.filter(item => auth.role && item.roles.includes(auth.role)))
+const items = computed(() => navFor(auth.role, auth.isMonitoring))
 const roleIcon = computed(() => (auth.role === 'surveyor' ? RiMapPinUserLine : RiShieldUserLine))
 
 function isActive(to: string) {
@@ -58,7 +58,7 @@ function onGroupClick() {
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" as-child>
-            <RouterLink to="/app/dashboard" @click="onNavigate">
+            <RouterLink to="/dashboard" @click="onNavigate">
               <div class="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-10 items-center justify-center rounded-lg">
                 <component :is="roleIcon" class="size-5" />
               </div>

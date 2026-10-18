@@ -3,7 +3,7 @@ import { createApp } from 'vue'
 import './style.css'
 import '@/lib/mode'
 import App from './App.vue'
-import { setTokenGetter } from '@/lib/http'
+import { setTokenGetter, setUnauthorizedHandler } from '@/lib/http'
 import router from './router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -14,6 +14,13 @@ const pinia = createPinia()
 app.use(pinia)
 // Lets http.ts read the session token without importing the store.
 setTokenGetter(() => useAuthStore(pinia).token)
+// Expired token: clear the session and return to the login page.
+setUnauthorizedHandler(() => {
+  const auth = useAuthStore(pinia)
+  const role = auth.role ?? 'admin'
+  auth.logout()
+  router.push({ name: 'login', params: { role } })
+})
 app.use(router)
 
 router.isReady().then(() => app.mount('#app'))

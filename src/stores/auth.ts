@@ -3,10 +3,14 @@ import { computed, ref } from 'vue'
 import { ApiError } from '@/lib/http'
 import { isRole } from '@/lib/theme'
 import * as authApi from '@/services/auth'
+import { fetchMe } from '@/services/profile'
 import type { Role } from '@/lib/theme'
 import type { Credentials, RegisterPayload, User } from '@/services/auth'
 
 const STORAGE_KEY = 'sipantas.session'
+
+// Value of AdminUser.role for Monitoring accounts, which may only manage surveyors.
+const MONITORING_ROLE = 'Monitoring'
 
 interface Session {
   role: Role
@@ -45,6 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
   const role = ref<Role | null>(stored?.role ?? null)
   const token = ref<string | null>(stored?.token ?? null)
   const user = ref<User | null>(stored?.user ?? null)
+  const isMonitoring = computed(() => role.value === 'admin' && !!user.value && 'role' in user.value && user.value.role === MONITORING_ROLE)
   const isAuthenticated = computed(() => role.value !== null && token.value !== null)
 
   async function login(target: Role, credentials: Credentials) {
@@ -63,6 +68,15 @@ export const useAuthStore = defineStore('auth', () => {
     await authApi.registerSurveyor(payload)
   }
 
+  // Reloads the profile from GET /api/auth/me.
+  async function refreshProfile() {
+    if (!role.value || !token.value || !user.value)
+      return
+    const me = await fetchMe()
+    user.value = { ...user.value, ...me }
+    writeStoredSession({ role: role.value, token: token.value, user: user.value })
+  }
+
   function logout() {
     role.value = null
     token.value = null
@@ -70,5 +84,5 @@ export const useAuthStore = defineStore('auth', () => {
     writeStoredSession(null)
   }
 
-  return { role, token, user, isAuthenticated, login, register, logout }
+  return { role, token, user, isAuthenticated, isMonitoring, login, register, refreshProfile, logout }
 })

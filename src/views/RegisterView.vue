@@ -8,13 +8,10 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/http'
+import { EMAIL_PATTERN, MIN_PASSWORD_LENGTH, PHONE_PATTERN } from '@/lib/validation'
 import { fetchCities, fetchProvinces } from '@/services/regions'
 import { useAuthStore } from '@/stores/auth'
 import type { Region } from '@/services/regions'
-
-const MIN_PASSWORD_LENGTH = 8
-const EMAIL_PATTERN = /^\S+@\S+\.\S+$/
-const PHONE_PATTERN = /^(\+62|62|0)8\d{7,11}$/
 
 const auth = useAuthStore()
 
