@@ -1,59 +1,89 @@
-import { RiDashboardLine, RiDatabase2Line, RiTeamLine, RiUserLine } from '@remixicon/vue'
-import type { Component } from 'vue'
-import type { Role } from '@/lib/theme'
+import {
+  RiDashboardLine,
+  RiDatabase2Line,
+  RiTeamLine,
+  RiUserLine,
+} from "@remixicon/vue";
+import type { Component } from "vue";
+import type { Role } from "@/lib/theme";
 
 export interface NavLeaf {
-  label: string
-  to: string
-  administratorOnly?: boolean
+  label: string;
+  to: string;
+  administratorOnly?: boolean;
 }
 
 // An item has either `to` (a plain link) or `children` (an expandable group).
 export interface NavItem {
-  label: string
-  icon: Component
-  roles: readonly Role[]
-  to?: string
-  children?: readonly NavLeaf[]
-  administratorOnly?: boolean
+  label: string;
+  icon: Component;
+  roles: readonly Role[];
+  to?: string;
+  children?: readonly NavLeaf[];
+  administratorOnly?: boolean;
 }
 
 // Placeholder menu. Replace with the real feature list once it is decided.
 export const NAV_ITEMS: readonly NavItem[] = [
-  { label: 'Dashboard', to: '/dashboard', icon: RiDashboardLine, roles: ['admin', 'surveyor'] },
   {
-    label: 'Master',
+    label: "Dashboard",
+    to: "/dashboard",
+    icon: RiDashboardLine,
+    roles: ["admin", "surveyor"],
+  },
+  {
+    label: "Master",
     icon: RiDatabase2Line,
-    roles: ['admin'],
+    roles: ["admin"],
     administratorOnly: true,
     children: [
-      { label: 'Master A', to: '/master/a' },
-      { label: 'Master B', to: '/master/b' },
+      { label: "Bencana", to: "/master/bencana" },
+      { label: "Master A", to: "/master/a" },
+      { label: "Master B", to: "/master/b" },
     ],
   },
   {
-    label: 'User',
+    label: "User",
     icon: RiTeamLine,
-    roles: ['admin'],
+    roles: ["admin"],
     children: [
-      { label: 'Admin Monitoring', to: '/user/admins', administratorOnly: true },
-      { label: 'Surveyor', to: '/user/surveyors' },
+      {
+        label: "Admin Monitoring",
+        to: "/user/admins",
+        administratorOnly: true,
+      },
+      { label: "Surveyor", to: "/user/surveyors" },
     ],
   },
-  { label: 'Profil', to: '/profile', icon: RiUserLine, roles: ['admin', 'surveyor'] },
-]
+  {
+    label: "Profil",
+    to: "/profile",
+    icon: RiUserLine,
+    roles: ["admin", "surveyor"],
+  },
+];
 
 // Menu for one account: filtered by role, and for Monitoring also by administratorOnly (empty groups are dropped).
 export function navFor(role: Role | null, monitoring: boolean): NavItem[] {
-  if (!role)
-    return []
-  return NAV_ITEMS
-    .filter(item => item.roles.includes(role) && !(monitoring && item.administratorOnly))
-    .map(item => (item.children ? { ...item, children: item.children.filter(child => !(monitoring && child.administratorOnly)) } : item))
-    .filter(item => !item.children || item.children.length > 0)
+  if (!role) return [];
+  return NAV_ITEMS.filter(
+    (item) =>
+      item.roles.includes(role) && !(monitoring && item.administratorOnly),
+  )
+    .map((item) =>
+      item.children
+        ? {
+            ...item,
+            children: item.children.filter(
+              (child) => !(monitoring && child.administratorOnly),
+            ),
+          }
+        : item,
+    )
+    .filter((item) => !item.children || item.children.length > 0);
 }
 
 export const ROLE_LABEL: Record<Role, string> = {
-  admin: 'Admin',
-  surveyor: 'Surveyor',
-}
+  admin: "Admin",
+  surveyor: "Surveyor",
+};
