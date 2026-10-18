@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { RiLoader4Line, RiMapPinUserLine, RiShieldUserLine } from '@remixicon/vue'
+import { RiLoader4Line, RiMapPinUserLine, RiShieldUserLine, RiTimeLine } from '@remixicon/vue'
 import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AuthShell from '@/components/AuthShell.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -34,6 +35,9 @@ const role = computed<Role>(() => {
   return typeof param === 'string' && isRole(param) ? param : 'admin'
 })
 const page = computed(() => content[role.value])
+
+// Set by the 401 handler in main.ts after the session expired.
+const sessionExpired = computed(() => route.query.expired === '1')
 
 const form = reactive({ email: '', password: '' })
 const errors = reactive<{ email?: string, password?: string, form?: string }>({})
@@ -71,6 +75,13 @@ async function onSubmit() {
 
 <template>
   <AuthShell :icon="page.icon" :title="page.title">
+    <Alert v-if="sessionExpired" role="status" class="mb-4 text-sm">
+      <RiTimeLine />
+      <AlertDescription class="text-sm">
+        Sesi Anda berakhir. Silakan masuk kembali.
+      </AlertDescription>
+    </Alert>
+
     <form novalidate @submit.prevent="onSubmit">
       <FieldGroup>
         <Field :data-invalid="!!errors.email">

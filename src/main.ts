@@ -19,7 +19,7 @@ setUnauthorizedHandler(() => {
   const auth = useAuthStore(pinia)
   const role = auth.role ?? 'admin'
   auth.logout()
-  router.push({ name: 'login', params: { role } })
+  router.push({ name: 'login', params: { role }, query: { expired: '1' } })
 })
 app.use(router)
 
