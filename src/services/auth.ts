@@ -26,6 +26,7 @@ interface UserBase {
   updatedAt: string
 }
 
+// Response shapes follow the backend OpenAPI spec.
 export interface AdminUser extends UserBase {
   role: string
 }
@@ -43,20 +44,23 @@ interface LoginResponse<T> {
 }
 
 export function loginAdmin(credentials: Credentials) {
-  return request<LoginResponse<AdminUser>>('/api/auth/admin/login', { method: 'POST', body: credentials })
+  return request<LoginResponse<AdminUser>>('/api/auth/admin/login', { method: 'POST', body: credentials, token: null })
 }
 
 export function loginSurveyor(credentials: Credentials) {
-  return request<LoginResponse<SurveyorUser>>('/api/auth/surveyor/login', { method: 'POST', body: credentials })
+  return request<LoginResponse<SurveyorUser>>('/api/auth/surveyor/login', { method: 'POST', body: credentials, token: null })
 }
 
+// Picks the endpoint by role. Auth endpoints never send a session token.
 export function login(role: Role, credentials: Credentials): Promise<LoginResponse<User>> {
   return role === 'admin' ? loginAdmin(credentials) : loginSurveyor(credentials)
 }
 
+// Maps form field names to the API names (name -> nama, phone -> nomorHp, ...).
 export function registerSurveyor(payload: RegisterPayload) {
   return request<SurveyorUser>('/api/auth/surveyor/register', {
     method: 'POST',
+    token: null,
     body: {
       nip: payload.nip,
       nama: payload.name,

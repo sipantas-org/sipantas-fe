@@ -1,6 +1,7 @@
 // Set VITE_API_BASE_URL in .env (see .env.example). Endpoint paths already start with /api.
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
 
+// status 0 means the request never reached the server.
 export class ApiError extends Error {
   status: number
 
@@ -10,9 +11,17 @@ export class ApiError extends Error {
   }
 }
 
+// Supplies the session token for requests that do not pass one. Set in main.ts (avoids a store import cycle).
+let tokenGetter: () => string | null = () => null
+
+export function setTokenGetter(getter: () => string | null) {
+  tokenGetter = getter
+}
+
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
   body?: unknown
+  // undefined = use the session token, null = send none.
   token?: string | null
 }
 
@@ -35,12 +44,14 @@ function unwrap<T>(data: unknown): T {
   return data as T
 }
 
+// JSON request. Throws ApiError for network failures and non-2xx responses.
 export async function request<T>(path: string, { method = 'GET', body, token }: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (body !== undefined)
     headers['Content-Type'] = 'application/json'
-  if (token)
-    headers.Authorization = `Bearer ${token}`
+  const bearer = token === undefined ? tokenGetter() : token
+  if (bearer)
+    headers.Authorization = `Bearer ${bearer}`
 
   let response: Response
   try {

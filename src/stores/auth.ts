@@ -14,6 +14,7 @@ interface Session {
   user: User
 }
 
+// Ignores a stored session that is missing a valid role, token or user.
 function readStoredSession(): Session | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -48,6 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(target: Role, credentials: Credentials) {
     const response = await authApi.login(target, credentials)
+    // Guards against an unexpected response shape that would otherwise log in without a token.
     if (typeof response?.accessToken !== 'string' || !response.user)
       throw new ApiError(0, 'Respons login dari server tidak valid.')
     role.value = target
