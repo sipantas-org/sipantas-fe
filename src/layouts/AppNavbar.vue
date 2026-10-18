@@ -30,6 +30,8 @@ const auth = useAuthStore()
 
 const title = computed(() => (typeof route.meta.title === 'string' ? route.meta.title : ''))
 const roleLabel = computed(() => (auth.role ? ROLE_LABEL[auth.role] : ''))
+// Shown in the account button; falls back to the role label until the profile is loaded.
+const displayName = computed(() => auth.user?.nama || roleLabel.value)
 
 async function onLogout() {
   const role = auth.role ?? 'admin'
@@ -63,10 +65,10 @@ async function onLogout() {
           <Button variant="ghost" class="h-10 gap-2 px-2 text-sm" aria-label="Menu akun">
             <Avatar class="size-8">
               <AvatarFallback class="bg-primary text-primary-foreground text-sm">
-                {{ roleLabel.slice(0, 1) }}
+                {{ displayName.slice(0, 1).toUpperCase() }}
               </AvatarFallback>
             </Avatar>
-            <span class="hidden sm:inline">{{ roleLabel }}</span>
+            <span class="hidden sm:inline max-w-40 truncate">{{ displayName }}</span>
             <RiArrowDownSLine class="size-4" />
           </Button>
         </DropdownMenuTrigger>
