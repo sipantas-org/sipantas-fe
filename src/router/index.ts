@@ -9,6 +9,7 @@ declare module 'vue-router' {
     title?: string
     requiresAuth?: boolean
     roles?: readonly Role[]
+    administratorOnly?: boolean
   }
 }
 
@@ -29,7 +30,7 @@ const router = createRouter({
       meta: { role: 'surveyor' },
     },
     {
-      path: '/app',
+      path: '/',
       component: () => import('@/layouts/AppLayout.vue'),
       meta: { requiresAuth: true },
       redirect: { name: 'dashboard' },
@@ -44,24 +45,30 @@ const router = createRouter({
           path: 'master/a',
           name: 'master-a',
           component: () => import('@/views/PlaceholderView.vue'),
-          meta: { title: 'Master A', roles: ['admin'] },
+          meta: { title: 'Master A', roles: ['admin'], administratorOnly: true },
         },
         {
           path: 'master/b',
           name: 'master-b',
           component: () => import('@/views/PlaceholderView.vue'),
-          meta: { title: 'Master B', roles: ['admin'] },
+          meta: { title: 'Master B', roles: ['admin'], administratorOnly: true },
         },
         {
-          path: 'surveyors',
+          path: 'user/surveyors',
           name: 'surveyors',
-          component: () => import('@/views/PlaceholderView.vue'),
+          component: () => import('@/views/SurveyorsView.vue'),
           meta: { title: 'Data Surveyor', roles: ['admin'] },
+        },
+        {
+          path: 'user/admins',
+          name: 'admins',
+          component: () => import('@/views/AdminsView.vue'),
+          meta: { title: 'Admin Monitoring', roles: ['admin'], administratorOnly: true },
         },
         {
           path: 'profile',
           name: 'profile',
-          component: () => import('@/views/PlaceholderView.vue'),
+          component: () => import('@/views/ProfileView.vue'),
           meta: { title: 'Profil' },
         },
       ],
@@ -83,6 +90,9 @@ router.beforeEach((to) => {
     return { name: 'dashboard' }
 
   if (to.meta.roles && auth.role && !to.meta.roles.includes(auth.role))
+    return { name: 'dashboard' }
+
+  if (to.meta.administratorOnly && auth.isMonitoring)
     return { name: 'dashboard' }
 
   const role = to.params.role ?? to.meta.role ?? (to.meta.requiresAuth ? auth.role : null)

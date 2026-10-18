@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 CLAUDE.md
+
+# Local env (copy .env.example)
+.env

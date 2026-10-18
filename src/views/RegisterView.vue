@@ -7,13 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ApiError } from '@/lib/http'
+import { EMAIL_PATTERN, MIN_PASSWORD_LENGTH, PHONE_PATTERN } from '@/lib/validation'
 import { fetchCities, fetchProvinces } from '@/services/regions'
 import { useAuthStore } from '@/stores/auth'
 import type { Region } from '@/services/regions'
-
-const MIN_PASSWORD_LENGTH = 8
-const EMAIL_PATTERN = /^\S+@\S+\.\S+$/
-const PHONE_PATTERN = /^(\+62|62|0)8\d{7,11}$/
 
 const auth = useAuthStore()
 
@@ -33,25 +31,57 @@ const errors = reactive<Partial<Record<FormKey | 'form', string>>>({})
 const provinces = ref<Region[]>([])
 const cities = ref<Region[]>([])
 const loadingCities = ref(false)
+const provincesError = ref<string>()
+const citiesError = ref<string>()
 const loading = ref(false)
 const success = ref(false)
 
-onMounted(async () => {
-  provinces.value = await fetchProvinces()
-})
+// Drops stale responses when the province changes quickly.
+let cityRequestId = 0
 
-async function onProvinceChange(provinceId: string) {
-  form.provinceId = provinceId
-  form.cityId = ''
+function loadErrorMessage(error: unknown, fallback: string) {
+  return error instanceof ApiError ? error.message : fallback
+}
+
+// Also used by the retry button.
+async function loadProvinces() {
+  provincesError.value = undefined
+  try {
+    provinces.value = await fetchProvinces()
+  }
+  catch (error) {
+    provincesError.value = loadErrorMessage(error, 'Gagal memuat daftar provinsi.')
+  }
+}
+
+async function loadCities(provinceId: string) {
+  const requestId = ++cityRequestId
+  citiesError.value = undefined
   cities.value = []
   loadingCities.value = true
   try {
-    cities.value = await fetchCities(provinceId)
+    const result = await fetchCities(provinceId)
+    if (requestId === cityRequestId)
+      cities.value = result
+  }
+  catch (error) {
+    if (requestId === cityRequestId)
+      citiesError.value = loadErrorMessage(error, 'Gagal memuat daftar kota/kabupaten.')
   }
   finally {
-    loadingCities.value = false
+    if (requestId === cityRequestId)
+      loadingCities.value = false
   }
 }
+
+// Cities depend on the province, so changing it clears the selected city.
+function onProvinceChange(provinceId: string) {
+  form.provinceId = provinceId
+  form.cityId = ''
+  loadCities(provinceId)
+}
+
+onMounted(loadProvinces)
 
 function validate() {
   const phone = form.phone.replace(/[\s-]/g, '')
@@ -108,8 +138,8 @@ async function onSubmit() {
     })
     cities.value = []
   }
-  catch {
-    errors.form = 'Pendaftaran gagal. Silakan coba lagi.'
+  catch (error) {
+    errors.form = error instanceof ApiError ? error.message : 'Pendaftaran gagal. Silakan coba lagi.'
   }
   finally {
     loading.value = false
@@ -204,7 +234,7 @@ async function onSubmit() {
               class="w-full text-sm data-[size=default]:h-10"
               :aria-invalid="!!errors.provinceId"
             >
-              <SelectValue :placeholder="provinces.length === 0 ? 'Memuat...' : 'Pilih provinsi'" />
+              <SelectValue :placeholder="provincesError ? 'Gagal memuat' : provinces.length === 0 ? 'Memuat...' : 'Pilih provinsi'" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem v-for="province in provinces" :key="province.id" :value="province.id" class="text-sm">
@@ -212,7 +242,10 @@ async function onSubmit() {
               </SelectItem>
             </SelectContent>
           </Select>
-          <FieldError :errors="[errors.provinceId]" class="text-sm" />
+          <FieldError :errors="[errors.provinceId ?? provincesError]" class="text-sm" />
+          <button v-if="provincesError" type="button" class="text-primary w-fit text-sm underline" @click="loadProvinces">
+            Coba lagi
+          </button>
         </Field>
 
         <Field :data-invalid="!!errors.cityId">
@@ -229,7 +262,7 @@ async function onSubmit() {
               :aria-invalid="!!errors.cityId"
             >
               <SelectValue
-                :placeholder="loadingCities ? 'Memuat...' : form.provinceId ? 'Pilih kota/kabupaten' : 'Pilih provinsi terlebih dahulu'"
+                :placeholder="loadingCities ? 'Memuat...' : citiesError ? 'Gagal memuat' : form.provinceId ? 'Pilih kota/kabupaten' : 'Pilih provinsi terlebih dahulu'"
               />
             </SelectTrigger>
             <SelectContent>
@@ -238,7 +271,10 @@ async function onSubmit() {
               </SelectItem>
             </SelectContent>
           </Select>
-          <FieldError :errors="[errors.cityId]" class="text-sm" />
+          <FieldError :errors="[errors.cityId ?? citiesError]" class="text-sm" />
+          <button v-if="citiesError" type="button" class="text-primary w-fit text-sm underline" @click="loadCities(form.provinceId)">
+            Coba lagi
+          </button>
         </Field>
 
         <Field :data-invalid="!!errors.password">

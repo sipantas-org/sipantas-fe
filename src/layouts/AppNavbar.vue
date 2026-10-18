@@ -75,7 +75,7 @@ async function onLogout() {
             Masuk sebagai {{ roleLabel }}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem class="h-9 text-sm" @select="router.push('/app/profile')">
+          <DropdownMenuItem class="h-9 text-sm" @select="router.push('/profile')">
             <RiUserLine />
             Profil
           </DropdownMenuItem>

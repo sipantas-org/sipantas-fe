@@ -1,5 +1,21 @@
-# Vue 3 + TypeScript + Vite
+# SIPANTAS-FE
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Frontend SIPANTAS dengan dua role, admin dan surveyor, yang memakai halaman sama dengan tema warna berbeda.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+Stack: Vue 3, TypeScript, Vite, Tailwind CSS v4, shadcn-vue, Pinia, Vue Router.
+
+## Menjalankan
+
+```bash
+npm install
+cp .env.example .env   # atur VITE_API_BASE_URL ke alamat backend
+npm run dev
+```
+
+Perintah lain: `npm run build` (pemeriksaan tipe dan build), `npm run preview`.
+
+## Konfigurasi
+
+| Variabel | Fungsi |
+|---|---|
+| `VITE_API_BASE_URL` | Alamat backend (default `http://localhost:3000`). CORS diatur di backend. |

@@ -1,37 +1,43 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { ApiError } from '@/lib/http'
 import { isRole } from '@/lib/theme'
+import * as authApi from '@/services/auth'
+import { fetchMe } from '@/services/profile'
 import type { Role } from '@/lib/theme'
+import type { Credentials, RegisterPayload, User } from '@/services/auth'
 
-const STORAGE_KEY = 'sipantas.role'
+const STORAGE_KEY = 'sipantas.session'
 
-export interface Credentials {
-  email: string
-  password: string
+// Value of AdminUser.role for Monitoring accounts, which may only manage surveyors.
+const MONITORING_ROLE = 'Monitoring'
+
+interface Session {
+  role: Role
+  token: string
+  user: User
 }
 
-export interface RegisterPayload extends Credentials {
-  nip: string
-  name: string
-  phone: string
-  provinceId: string
-  cityId: string
-}
-
-function readStoredRole(): Role | null {
+// Ignores a stored session that is missing a valid role, token or user.
+function readStoredSession(): Session | null {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    return isRole(stored) ? stored : null
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw)
+      return null
+    const parsed: Partial<Session> = JSON.parse(raw)
+    return isRole(parsed.role) && typeof parsed.token === 'string' && parsed.user
+      ? { role: parsed.role, token: parsed.token, user: parsed.user }
+      : null
   }
   catch {
     return null
   }
 }
 
-function writeStoredRole(role: Role | null) {
+function writeStoredSession(session: Session | null) {
   try {
-    if (role)
-      localStorage.setItem(STORAGE_KEY, role)
+    if (session)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
     else
       localStorage.removeItem(STORAGE_KEY)
   }
@@ -39,25 +45,44 @@ function writeStoredRole(role: Role | null) {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const role = ref<Role | null>(readStoredRole())
-  const isAuthenticated = computed(() => role.value !== null)
+  const stored = readStoredSession()
+  const role = ref<Role | null>(stored?.role ?? null)
+  const token = ref<string | null>(stored?.token ?? null)
+  const user = ref<User | null>(stored?.user ?? null)
+  const isMonitoring = computed(() => role.value === 'admin' && !!user.value && 'role' in user.value && user.value.role === MONITORING_ROLE)
+  const isAuthenticated = computed(() => role.value !== null && token.value !== null)
 
-  // Stub: credentials are not verified. Replace with a login API call.
-  async function login(target: Role, _credentials: Credentials) {
-    await new Promise(resolve => setTimeout(resolve, 600))
+  async function login(target: Role, credentials: Credentials) {
+    const response = await authApi.login(target, credentials)
+    // Guards against an unexpected response shape that would otherwise log in without a token.
+    if (typeof response?.accessToken !== 'string' || !response.user)
+      throw new ApiError(0, 'Respons login dari server tidak valid.')
     role.value = target
-    writeStoredRole(target)
+    token.value = response.accessToken
+    user.value = response.user
+    writeStoredSession({ role: target, token: response.accessToken, user: response.user })
   }
 
-  // Stub: data is not sent anywhere. Replace with a register API call.
-  async function register(_payload: RegisterPayload) {
-    await new Promise(resolve => setTimeout(resolve, 600))
+  // The new account is Pending until an admin approves it, so this does not log in.
+  async function register(payload: RegisterPayload) {
+    await authApi.registerSurveyor(payload)
+  }
+
+  // Reloads the profile from GET /api/auth/me.
+  async function refreshProfile() {
+    if (!role.value || !token.value || !user.value)
+      return
+    const me = await fetchMe()
+    user.value = { ...user.value, ...me }
+    writeStoredSession({ role: role.value, token: token.value, user: user.value })
   }
 
   function logout() {
     role.value = null
-    writeStoredRole(null)
+    token.value = null
+    user.value = null
+    writeStoredSession(null)
   }
 
-  return { role, isAuthenticated, login, register, logout }
+  return { role, token, user, isAuthenticated, isMonitoring, login, register, refreshProfile, logout }
 })
