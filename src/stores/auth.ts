@@ -73,6 +73,9 @@ export const useAuthStore = defineStore('auth', () => {
     if (!role.value || !token.value || !user.value)
       return
     const me = await fetchMe()
+    // Logged out while the request was in flight.
+    if (!token.value)
+      return
     user.value = { ...user.value, ...me }
     writeStoredSession({ role: role.value, token: token.value, user: user.value })
   }

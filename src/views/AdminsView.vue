@@ -67,6 +67,9 @@ async function load() {
       return
     items.value = result.items
     total.value = result.total
+    // Changing the status of the last row of a page can leave it empty; step back one page.
+    if (result.items.length === 0 && page.value > 1)
+      page.value -= 1
   }
   catch (error) {
     if (id === loadId)
