@@ -3,7 +3,7 @@ export interface Region {
   name: string
 }
 
-// Stub: sample data, IDs may not match the database. Replace with API calls.
+// Stub: sample data. IDs use the BPS format the register API expects (province "31", city "31.71"). Replace with API calls.
 const PROVINCES: Region[] = [
   { id: '31', name: 'DKI Jakarta' },
   { id: '32', name: 'Jawa Barat' },
@@ -13,24 +13,24 @@ const PROVINCES: Region[] = [
 
 const CITIES: Record<string, Region[]> = {
   31: [
-    { id: '3171', name: 'Kota Jakarta Selatan' },
-    { id: '3172', name: 'Kota Jakarta Timur' },
-    { id: '3173', name: 'Kota Jakarta Pusat' },
-    { id: '3174', name: 'Kota Jakarta Barat' },
-    { id: '3175', name: 'Kota Jakarta Utara' },
+    { id: '31.71', name: 'Kota Jakarta Selatan' },
+    { id: '31.72', name: 'Kota Jakarta Timur' },
+    { id: '31.73', name: 'Kota Jakarta Pusat' },
+    { id: '31.74', name: 'Kota Jakarta Barat' },
+    { id: '31.75', name: 'Kota Jakarta Utara' },
   ],
   32: [
-    { id: '3271', name: 'Kota Bogor' },
-    { id: '3273', name: 'Kota Bandung' },
-    { id: '3276', name: 'Kota Depok' },
+    { id: '32.71', name: 'Kota Bogor' },
+    { id: '32.73', name: 'Kota Bandung' },
+    { id: '32.76', name: 'Kota Depok' },
   ],
   33: [
-    { id: '3372', name: 'Kota Surakarta' },
-    { id: '3374', name: 'Kota Semarang' },
+    { id: '33.72', name: 'Kota Surakarta' },
+    { id: '33.74', name: 'Kota Semarang' },
   ],
   35: [
-    { id: '3573', name: 'Kota Malang' },
-    { id: '3578', name: 'Kota Surabaya' },
+    { id: '35.73', name: 'Kota Malang' },
+    { id: '35.78', name: 'Kota Surabaya' },
   ],
 }
 

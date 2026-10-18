@@ -7,6 +7,7 @@ import PasswordInput from '@/components/PasswordInput.vue'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { ApiError } from '@/lib/http'
 import { isRole } from '@/lib/theme'
 import { useAuthStore } from '@/stores/auth'
 import type { Role } from '@/lib/theme'
@@ -59,8 +60,8 @@ async function onSubmit() {
     success.value = true
     await router.push({ name: 'dashboard' })
   }
-  catch {
-    errors.form = 'Gagal masuk. Periksa kembali email dan kata sandi Anda.'
+  catch (error) {
+    errors.form = error instanceof ApiError ? error.message : 'Gagal masuk. Silakan coba lagi.'
   }
   finally {
     loading.value = false

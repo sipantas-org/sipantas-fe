@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ApiError } from '@/lib/http'
 import { fetchCities, fetchProvinces } from '@/services/regions'
 import { useAuthStore } from '@/stores/auth'
 import type { Region } from '@/services/regions'
@@ -108,8 +109,8 @@ async function onSubmit() {
     })
     cities.value = []
   }
-  catch {
-    errors.form = 'Pendaftaran gagal. Silakan coba lagi.'
+  catch (error) {
+    errors.form = error instanceof ApiError ? error.message : 'Pendaftaran gagal. Silakan coba lagi.'
   }
   finally {
     loading.value = false
