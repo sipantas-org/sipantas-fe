@@ -17,6 +17,9 @@ setTokenGetter(() => useAuthStore(pinia).token)
 // Expired token: clear the session and return to the login page.
 setUnauthorizedHandler(() => {
   const auth = useAuthStore(pinia)
+  // Several requests can fail together; only the first one logs out.
+  if (!auth.token)
+    return
   const role = auth.role ?? 'admin'
   auth.logout()
   router.push({ name: 'login', params: { role }, query: { expired: '1' } })
