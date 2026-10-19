@@ -56,6 +56,10 @@ export async function fetchDisasters(
   };
 }
 
+export function fetchDisaster(id: number) {
+  return request<DisasterItem>(`/api/disasters/${id}`);
+}
+
 export function createDisaster(payload: CreateDisasterPayload) {
   return request<DisasterItem>("/api/disasters", {
     method: "POST",
