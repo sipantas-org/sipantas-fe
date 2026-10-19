@@ -1,6 +1,13 @@
 <!-- src/components/DataTable.vue -->
 <script setup lang="ts" generic="T">
-import TablePagination from "@/components/TablePagination.vue";
+import {
+  RiArrowDownSLine,
+  RiArrowUpDownLine,
+  RiArrowUpSLine,
+} from "@remixicon/vue";
+import TablePagination, {
+  type PaginationMeta,
+} from "@/components/TablePagination.vue";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -12,6 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { computed } from "vue";
+
+export type { PaginationMeta };
 
 export interface Column<T> {
   key: string;
@@ -19,23 +29,28 @@ export interface Column<T> {
   headerClass?: string;
   cellClass?: string;
   align?: "left" | "center" | "right";
+  sortable?: boolean;
 }
 
 const props = withDefaults(
   defineProps<{
     columns: Column<T>[];
     items: T[];
-    total: number;
+    total?: number;
+    pagination?: PaginationMeta;
     loading?: boolean;
     loadError?: string;
     emptyMessage?: string;
     itemKey?: (item: T, index: number) => string | number;
+    showNumbering?: boolean;
   }>(),
   {
+    total: 0,
     loading: false,
     loadError: undefined,
     emptyMessage: "Belum ada data.",
     itemKey: (_item: any, index: number) => index,
+    showNumbering: true,
   },
 );
 
@@ -45,20 +60,33 @@ const emit = defineEmits<{
 
 const page = defineModel<number>("page", { default: 1 });
 const limit = defineModel<number>("limit", { default: 10 });
+const sortBy = defineModel<string>("sortBy");
+const sortDir = defineModel<"asc" | "desc">("sortDir", { default: "asc" });
+
+const totalCount = computed(() => props.pagination?.total ?? props.total);
+
+function toggleSort(key: string) {
+  if (sortBy.value === key) {
+    sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
+  } else {
+    sortBy.value = key;
+    sortDir.value = "asc";
+  }
+}
 </script>
 
 <template>
   <Card class="gap-0 py-0 text-sm">
     <!-- Toolbar / Filter Header -->
     <div
-      v-if="$slots.filters || total !== undefined"
+      v-if="$slots.filters || totalCount !== undefined"
       class="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div class="flex flex-wrap items-center gap-3">
         <slot name="filters" />
       </div>
       <div class="text-muted-foreground text-sm">
-        <slot name="total" :total="total"> {{ total }} data </slot>
+        <slot name="total" :total="totalCount"> {{ totalCount }} data </slot>
       </div>
     </div>
 
@@ -66,6 +94,9 @@ const limit = defineModel<number>("limit", { default: 10 });
     <Table class="text-sm">
       <TableHeader>
         <TableRow class="hover:bg-transparent">
+          <TableHead v-if="showNumbering" class="h-11 w-14 px-4 text-center">
+            No.
+          </TableHead>
           <TableHead
             v-for="col in columns"
             :key="col.key"
@@ -76,10 +107,39 @@ const limit = defineModel<number>("limit", { default: 10 });
                 : col.align === 'center'
                   ? 'text-center'
                   : 'text-left',
+              col.sortable && 'cursor-pointer select-none hover:bg-muted/50',
               col.headerClass,
             ]"
+            @click="col.sortable && toggleSort(col.key)"
           >
-            {{ col.label }}
+            <div
+              v-if="col.sortable"
+              :class="[
+                'inline-flex items-center gap-1.5',
+                col.align === 'right'
+                  ? 'justify-end'
+                  : col.align === 'center'
+                    ? 'justify-center'
+                    : 'justify-start',
+              ]"
+            >
+              <span>{{ col.label }}</span>
+              <RiArrowUpSLine
+                v-if="sortBy === col.key && sortDir === 'asc'"
+                class="size-4 shrink-0 text-foreground"
+              />
+              <RiArrowDownSLine
+                v-else-if="sortBy === col.key && sortDir === 'desc'"
+                class="size-4 shrink-0 text-foreground"
+              />
+              <RiArrowUpDownLine
+                v-else
+                class="text-muted-foreground/50 size-3.5 shrink-0"
+              />
+            </div>
+            <template v-else>
+              {{ col.label }}
+            </template>
           </TableHead>
         </TableRow>
       </TableHeader>
@@ -88,6 +148,20 @@ const limit = defineModel<number>("limit", { default: 10 });
         :class="loading && items.length > 0 && 'opacity-60 transition-opacity'"
       >
         <TableRow v-for="(item, index) in items" :key="itemKey(item, index)">
+          <TableCell
+            v-if="showNumbering"
+            class="text-muted-foreground w-14 px-4 text-center"
+          >
+            <slot
+              name="cell-number"
+              :item="item"
+              :index="index"
+              :number="(page - 1) * limit + index + 1"
+            >
+              {{ (page - 1) * limit + index + 1 }}
+            </slot>
+          </TableCell>
+
           <TableCell
             v-for="col in columns"
             :key="col.key"
@@ -111,7 +185,7 @@ const limit = defineModel<number>("limit", { default: 10 });
         <!-- State Kosong, Error, atau Sedang Memuat -->
         <TableEmpty
           v-if="items.length === 0"
-          :colspan="columns.length"
+          :colspan="showNumbering ? columns.length + 1 : columns.length"
           class="text-muted-foreground h-32 text-center"
         >
           <div v-if="loadError" class="flex flex-col items-center gap-2">
@@ -134,8 +208,9 @@ const limit = defineModel<number>("limit", { default: 10 });
     <TablePagination
       v-model:page="page"
       v-model:limit="limit"
-      :total="total"
+      :total="totalCount"
       :item-count="items.length"
+      :pagination="pagination"
     />
   </Card>
 </template>

@@ -39,7 +39,10 @@ const page = computed(() => content[role.value])
 // Set by the 401 handler in main.ts after the session expired.
 const sessionExpired = computed(() => route.query.expired === '1')
 
-const form = reactive({ email: '', password: '' })
+const form = reactive({
+  email: "administrator.sipantas@gmail.com",
+  password: "password.sipantas123",
+});
 const errors = reactive<{ email?: string, password?: string, form?: string }>({})
 const loading = ref(false)
 const success = ref(false)

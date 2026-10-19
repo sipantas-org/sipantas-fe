@@ -4,8 +4,9 @@ import {
   RiCheckboxCircleLine,
   RiDeleteBinLine,
   RiEditLine,
-  RiLoader4Line,
   RiMoreLine,
+  RiCheckLine,
+  RiFilterLine,
 } from "@remixicon/vue";
 import { onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import ConfirmDeleteDialog from "@/components/ConfirmDeleteDialog.vue";
@@ -33,7 +34,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+
+import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+const openProvince = ref(false);
+const openRegency = ref(false);
+
 import { ApiError } from "@/lib/http";
 import {
   createDisaster,
@@ -41,6 +62,9 @@ import {
   fetchDisaster,
   fetchDisasters,
   updateDisaster,
+  type DisasterSortBy,
+  type SortDirection,
+  type DisasterPaginationMeta,
   type CreateDisasterPayload,
   type DisasterItem,
   type DisasterStatus,
@@ -54,15 +78,28 @@ const STATUS_META: Record<
   { label: string; variant: NonNullable<BadgeVariants["variant"]> }
 > = {
   Active: { label: "Aktif", variant: "default" },
-  Inactive: { label: "Selesai", variant: "secondary" },
+  Inactive: { label: "Selesai", variant: "ghost" },
 };
 const ListStatus = Object.keys(STATUS_META) as DisasterStatus[];
 
 const status = ref<DisasterStatus | "all">("all");
+const filterDisasterCode = ref("");
+const filterDisasterName = ref("");
+const filterDisasterCategory = ref("");
+const sortBy = ref<DisasterSortBy>();
+const sortDir = ref<SortDirection>("asc");
 const limit = ref(10);
 const page = ref(1);
 
+const appliedFilters = reactive({
+  status: "all" as DisasterStatus | "all",
+  disasterCode: "",
+  disasterName: "",
+  disasterCategory: "",
+});
+
 const items = ref<DisasterItem[]>([]);
+const pagination = ref<DisasterPaginationMeta>();
 const total = ref(0);
 const loading = ref(false);
 const loadError = ref<string>();
@@ -82,21 +119,32 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 let loadId = 0;
-async function load() {
+async function loadDataList() {
   const id = ++loadId;
   loading.value = true;
   loadError.value = undefined;
   try {
     const result = await fetchDisasters({
       status:
-        status.value === "all" ? undefined : (status.value as DisasterStatus),
+        appliedFilters.status === "all"
+          ? undefined
+          : (appliedFilters.status as DisasterStatus),
+      disasterCode: appliedFilters.disasterCode || undefined,
+      disasterName: appliedFilters.disasterName || undefined,
+      disasterCategory: appliedFilters.disasterCategory || undefined,
+      sortBy: sortBy.value,
+      sortDir: sortBy.value ? sortDir.value : undefined,
       page: page.value,
       limit: limit.value,
     });
+
+    console.log(result);
     if (id !== loadId) return;
-    items.value = result.items;
-    total.value = result.total;
-    if (result.items.length === 0 && page.value > 1) {
+    const res = result as any;
+    items.value = res.items ?? (Array.isArray(res.data) ? res.data : []);
+    total.value = res.total ?? res.pagination?.total ?? items.value.length;
+    pagination.value = res.pagination;
+    if (items.value.length === 0 && page.value > 1) {
       page.value -= 1;
     }
   } catch (error) {
@@ -111,19 +159,40 @@ async function load() {
 }
 
 onMounted(async () => {
-  await Promise.all([load(), loadProvinces()]);
+  await Promise.all([loadDataList(), loadProvinces()]);
 });
 
 onBeforeUnmount(() => {
   clearTimeout(noticeTimer);
 });
 
-watch(page, load);
-watch([status, limit], () => {
+function applyFilters() {
+  appliedFilters.status = status.value;
+  appliedFilters.disasterCode = filterDisasterCode.value.trim();
+  appliedFilters.disasterName = filterDisasterName.value.trim();
+  appliedFilters.disasterCategory = filterDisasterCategory.value.trim();
+
   if (page.value !== 1) {
     page.value = 1;
   } else {
-    load();
+    loadDataList();
+  }
+}
+
+function resetFilters() {
+  status.value = "all";
+  filterDisasterCode.value = "";
+  filterDisasterName.value = "";
+  filterDisasterCategory.value = "";
+  applyFilters();
+}
+
+watch(page, loadDataList);
+watch([limit, sortBy, sortDir], () => {
+  if (page.value !== 1) {
+    page.value = 1;
+  } else {
+    loadDataList();
   }
 });
 
@@ -144,7 +213,8 @@ const loadingCities = ref(false);
 
 async function loadProvinces() {
   try {
-    provinces.value = await fetchProvinces();
+    const res = await fetchProvinces();
+    provinces.value = Array.isArray(res) ? res : ((res as any)?.data ?? []);
   } catch {
     provinces.value = [];
   }
@@ -157,7 +227,8 @@ async function loadCities(provinceId: string) {
   }
   loadingCities.value = true;
   try {
-    cities.value = await fetchCities(provinceId);
+    const res = await fetchCities(provinceId);
+    cities.value = Array.isArray(res) ? res : ((res as any)?.data ?? []);
   } catch {
     cities.value = [];
   } finally {
@@ -188,7 +259,7 @@ const form = reactive({
 type FormKey = keyof typeof form;
 const errors = reactive<Partial<Record<FormKey | "form", string>>>({});
 
-function openCreate() {
+async function openCreate() {
   editingId.value = null;
   Object.assign(form, {
     disasterName: "",
@@ -202,7 +273,7 @@ function openCreate() {
   cities.value = [];
   Object.keys(errors).forEach((key) => delete errors[key as FormKey | "form"]);
   if (provinces.value.length === 0) {
-    loadProvinces();
+    await loadProvinces();
   }
   formOpen.value = true;
 }
@@ -214,20 +285,17 @@ async function openEdit(item: DisasterItem) {
 
   const rawStatus = (item.disasterStatus ??
     (item as any).status) as DisasterStatus;
-  const initialProvinceId = String(
-    item.provinceId ?? (item as any).idProvince ?? "",
-  );
-  const initialRegencyId = String(item.regencyId ?? (item as any).idCity ?? "");
 
-  // Tampilkan data awal dari baris tabel terlebih dahulu
-  console.log(item);
+  const provId = item.provinceId ? String(item.provinceId) : "";
+  const regId = item.regencyId ? String(item.regencyId) : "";
+
   Object.assign(form, {
     disasterName: item.disasterName ?? "",
     disasterCode: item.disasterCode ?? "",
     disasterCategory: item.disasterCategory ?? "",
     description: item.description ?? "",
-    provinceId: initialProvinceId,
-    regencyId: initialRegencyId,
+    provinceId: provId,
+    regencyId: regId,
     status: (STATUS_META[rawStatus] ? rawStatus : "Active") as DisasterStatus,
   });
 
@@ -239,33 +307,8 @@ async function openEdit(item: DisasterItem) {
       await loadProvinces();
     }
 
-    // Ambil detail lengkap dari server
-    const detail = await fetchDisaster(id).catch(() => item);
-    const provId = String(
-      detail.provinceId ?? (detail as any).idProvince ?? initialProvinceId,
-    );
-    const regId = String(
-      detail.regencyId ?? (detail as any).idCity ?? initialRegencyId,
-    );
-    const detailStatus = (detail.disasterStatus ??
-      (detail as any).status ??
-      rawStatus) as DisasterStatus;
-
-    Object.assign(form, {
-      disasterName: detail.disasterName ?? form.disasterName,
-      disasterCode: detail.disasterCode ?? form.disasterCode,
-      disasterCategory: detail.disasterCategory ?? form.disasterCategory,
-      description: detail.description ?? form.description,
-      provinceId: provId,
-      regencyId: regId,
-      status: (STATUS_META[detailStatus]
-        ? detailStatus
-        : "Active") as DisasterStatus,
-    });
-
     if (provId) {
       await loadCities(provId);
-      form.regencyId = regId;
     }
   } finally {
     formLoading.value = false;
@@ -317,7 +360,7 @@ async function onSubmitForm() {
       showNotice(`Data bencana ${payload.disasterName} berhasil ditambahkan.`);
     }
     formOpen.value = false;
-    await load();
+    await loadDataList();
   } catch (error) {
     errors.form = errorMessage(
       error,
@@ -351,7 +394,7 @@ async function submitDelete() {
     isDeleteOpen.value = false;
     deletingItem.value = null;
     showNotice(`Data bencana ${name} berhasil dihapus.`);
-    await load();
+    await loadDataList();
   } catch (error) {
     deleteError.value = errorMessage(
       error,
@@ -363,8 +406,9 @@ async function submitDelete() {
 }
 
 const columns: Column<DisasterItem>[] = [
-  { key: "disaster", label: "Bencana" },
-  { key: "disasterCategory", label: "Kategori" },
+  { key: "disasterCode", label: "Kode Bencana", sortable: true },
+  { key: "disasterName", label: "Nama Bencana", sortable: true },
+  { key: "disasterCategory", label: "Kategori", sortable: true },
   { key: "region", label: "Wilayah" },
   { key: "status", label: "Status" },
   { key: "createdAt", label: "Dibuat", cellClass: "text-muted-foreground" },
@@ -400,30 +444,116 @@ const columns: Column<DisasterItem>[] = [
     <DataTable
       v-model:page="page"
       v-model:limit="limit"
+      v-model:sort-by="sortBy"
+      v-model:sort-dir="sortDir"
       :columns="columns"
       :items="items"
       :total="total"
+      :pagination="pagination"
       :loading="loading"
       :load-error="loadError"
       :item-key="(item) => item.disasterId"
-      @retry="load"
+      @retry="loadDataList"
     >
       <!-- Slot Filter Toolbar -->
       <template #filters>
-        <label for="status-filter" class="text-muted-foreground text-sm"
-          >Status</label
+        <div
+          class="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row sm:items-center sm:gap-2"
         >
-        <Select v-model="status">
-          <SelectTrigger id="status-filter" class="w-48 text-sm">
-            <SelectValue placeholder="Semua status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua status</SelectItem>
-            <SelectItem v-for="item in ListStatus" :key="item" :value="item">
-              {{ STATUS_META[item].label }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+          <label
+            for="filter-disaster-code"
+            class="text-muted-foreground text-sm shrink-0"
+          >
+            Kode
+          </label>
+          <Input
+            id="filter-disaster-code"
+            v-model="filterDisasterCode"
+            placeholder="Cari kode..."
+            class="h-9 w-full text-sm sm:w-36"
+            @keydown.enter="applyFilters"
+          />
+        </div>
+
+        <div
+          class="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row sm:items-center sm:gap-2"
+        >
+          <label
+            for="filter-disaster-name"
+            class="text-muted-foreground text-sm shrink-0"
+          >
+            Nama
+          </label>
+          <Input
+            id="filter-disaster-name"
+            v-model="filterDisasterName"
+            placeholder="Cari nama bencana..."
+            class="h-9 w-full text-sm sm:w-44"
+            @keydown.enter="applyFilters"
+          />
+        </div>
+
+        <div
+          class="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row sm:items-center sm:gap-2"
+        >
+          <label
+            for="filter-disaster-category"
+            class="text-muted-foreground text-sm shrink-0"
+          >
+            Kategori
+          </label>
+          <Input
+            id="filter-disaster-category"
+            v-model="filterDisasterCategory"
+            placeholder="Cari kategori..."
+            class="h-9 w-full text-sm sm:w-36"
+            @keydown.enter="applyFilters"
+          />
+        </div>
+
+        <div
+          class="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row sm:items-center sm:gap-2"
+        >
+          <label
+            for="status-filter"
+            class="text-muted-foreground text-sm shrink-0"
+          >
+            Status
+          </label>
+          <Select v-model="status">
+            <SelectTrigger
+              id="status-filter"
+              class="w-full text-sm data-[size=default]:h-9 sm:w-36"
+            >
+              <SelectValue placeholder="Semua status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua status</SelectItem>
+              <SelectItem v-for="item in ListStatus" :key="item" :value="item">
+                {{ STATUS_META[item].label }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div class="flex w-full items-center gap-2 pt-1 sm:w-auto sm:pt-0">
+          <Button
+            type="button"
+            class="h-9 flex-1 text-sm sm:flex-none"
+            @click="applyFilters"
+          >
+            <RiFilterLine />
+            Filter
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            class="h-9 flex-1 text-sm sm:flex-none"
+            @click="resetFilters"
+          >
+            Reset
+          </Button>
+        </div>
       </template>
 
       <!-- Slot Kustom Baris Data -->
@@ -477,21 +607,6 @@ const columns: Column<DisasterItem>[] = [
       @submit="onSubmitForm"
     >
       <FieldGroup>
-        <Field :data-invalid="!!errors.disasterName">
-          <FieldLabel for="disaster-name" class="text-sm">
-            Nama Bencana
-          </FieldLabel>
-          <Input
-            id="disaster-name"
-            v-model="form.disasterName"
-            placeholder="Misal: Gempa Bumi Cianjur"
-            class="h-10 text-sm md:text-sm"
-            :aria-invalid="!!errors.disasterName"
-            :disabled="formSubmitting"
-          />
-          <FieldError :errors="[errors.disasterName]" class="text-sm" />
-        </Field>
-
         <Field :data-invalid="!!errors.disasterCode">
           <FieldLabel for="disaster-code" class="text-sm">
             Kode Bencana
@@ -505,6 +620,21 @@ const columns: Column<DisasterItem>[] = [
             :disabled="formSubmitting"
           />
           <FieldError :errors="[errors.disasterCode]" class="text-sm" />
+        </Field>
+
+        <Field :data-invalid="!!errors.disasterName">
+          <FieldLabel for="disaster-name" class="text-sm">
+            Nama Bencana
+          </FieldLabel>
+          <Input
+            id="disaster-name"
+            v-model="form.disasterName"
+            placeholder="Misal: Gempa Bumi Cianjur"
+            class="h-10 text-sm md:text-sm"
+            :aria-invalid="!!errors.disasterName"
+            :disabled="formSubmitting"
+          />
+          <FieldError :errors="[errors.disasterName]" class="text-sm" />
         </Field>
 
         <Field :data-invalid="!!errors.disasterCategory">
@@ -540,70 +670,158 @@ const columns: Column<DisasterItem>[] = [
 
         <Field :data-invalid="!!errors.provinceId">
           <FieldLabel for="province" class="text-sm"> Provinsi </FieldLabel>
-          <Select
-            :model-value="form.provinceId"
-            :disabled="formSubmitting || provinces.length === 0"
-            @update:model-value="onProvinceChange(String($event))"
-          >
-            <SelectTrigger
-              id="province"
-              class="w-full text-sm data-[size=default]:h-10"
-              :aria-invalid="!!errors.provinceId"
-            >
-              <SelectValue
-                :placeholder="
-                  provinces.length === 0 ? 'Memuat...' : 'Pilih provinsi'
-                "
-              />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem
-                v-for="prov in provinces"
-                :key="prov.id"
-                :value="String(prov.id)"
-                class="text-sm"
+          <Popover v-model:open="openProvince">
+            <PopoverTrigger as-child>
+              <Button
+                id="province"
+                variant="outline"
+                role="combobox"
+                :aria-expanded="openProvince"
+                :disabled="formSubmitting"
+                :aria-invalid="!!errors.provinceId"
+                class="w-full justify-between text-sm font-normal data-[size=default]:h-10"
+                :class="{ 'text-muted-foreground': !form.provinceId }"
               >
-                {{ prov.name }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+                {{
+                  form.provinceId
+                    ? provinces.find(
+                        (p) =>
+                          String(p.id ?? (p as any).code) ===
+                          String(form.provinceId),
+                      )?.name
+                    : provinces.length === 0
+                      ? "Memuat..."
+                      : "Pilih provinsi"
+                }}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              class="w-[--radix-popover-trigger-width] p-0"
+              align="start"
+            >
+              <Command>
+                <CommandInput
+                  class="h-9 text-sm"
+                  placeholder="Cari provinsi..."
+                />
+                <CommandEmpty class="p-2 text-xs text-muted-foreground">
+                  Provinsi tidak ditemukan.
+                </CommandEmpty>
+                <CommandList>
+                  <CommandGroup>
+                    <CommandItem
+                      v-for="prov in provinces"
+                      :key="prov.id"
+                      :value="prov.name"
+                      class="text-sm"
+                      @select="
+                        () => {
+                          onProvinceChange(
+                            String(prov.id ?? (prov as any).code),
+                          );
+                          openProvince = false;
+                        }
+                      "
+                    >
+                      {{ prov.name }}
+                      <RiCheckLine
+                        :class="
+                          cn(
+                            'ml-auto h-4 w-4',
+                            String(form.provinceId) ===
+                              String(prov.id ?? (prov as any).code)
+                              ? 'opacity-100'
+                              : 'opacity-0',
+                          )
+                        "
+                      />
+                    </CommandItem>
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
           <FieldError :errors="[errors.provinceId]" class="text-sm" />
         </Field>
 
+        <!-- Field Kota / Kabupaten -->
         <Field :data-invalid="!!errors.regencyId">
           <FieldLabel for="regency" class="text-sm">
             Kota / Kabupaten
           </FieldLabel>
-          <Select
-            v-model="form.regencyId"
-            :disabled="formSubmitting || loadingCities || cities.length === 0"
-          >
-            <SelectTrigger
-              id="regency"
-              class="w-full text-sm data-[size=default]:h-10"
-              :aria-invalid="!!errors.regencyId"
-            >
-              <SelectValue
-                :placeholder="
-                  loadingCities
-                    ? 'Memuat...'
-                    : form.provinceId
-                      ? 'Pilih kota/kabupaten'
-                      : 'Pilih provinsi terlebih dahulu'
-                "
-              />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem
-                v-for="city in cities"
-                :key="city.id"
-                :value="String(city.id)"
-                class="text-sm"
+          <Popover v-model:open="openRegency">
+            <PopoverTrigger as-child>
+              <Button
+                id="regency"
+                variant="outline"
+                role="combobox"
+                :aria-expanded="openRegency"
+                :disabled="formSubmitting || !form.provinceId"
+                :aria-invalid="!!errors.regencyId"
+                class="w-full justify-between text-sm font-normal data-[size=default]:h-10"
+                :class="{ 'text-muted-foreground': !form.regencyId }"
               >
-                {{ city.name }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+                {{
+                  form.regencyId
+                    ? cities.find(
+                        (c) =>
+                          String(c.id ?? (c as any).code) ===
+                          String(form.regencyId),
+                      )?.name
+                    : loadingCities
+                      ? "Memuat..."
+                      : form.provinceId
+                        ? "Pilih kota/kabupaten"
+                        : "Pilih provinsi terlebih dahulu"
+                }}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              class="w-[--radix-popover-trigger-width] p-0"
+              align="start"
+            >
+              <Command>
+                <CommandInput
+                  class="h-9 text-sm"
+                  placeholder="Cari kota/kabupaten..."
+                />
+                <CommandEmpty class="p-2 text-xs text-muted-foreground">
+                  Kota/Kabupaten tidak ditemukan.
+                </CommandEmpty>
+                <CommandList>
+                  <CommandGroup>
+                    <CommandItem
+                      v-for="city in cities"
+                      :key="city.id"
+                      :value="city.name"
+                      class="text-sm"
+                      @select="
+                        () => {
+                          form.regencyId = String(
+                            city.id ?? (city as any).code,
+                          );
+                          openRegency = false;
+                        }
+                      "
+                    >
+                      {{ city.name }}
+                      <RiCheckLine
+                        :class="
+                          cn(
+                            'ml-auto h-4 w-4',
+                            String(form.regencyId) ===
+                              String(city.id ?? (city as any).code)
+                              ? 'opacity-100'
+                              : 'opacity-0',
+                          )
+                        "
+                      />
+                    </CommandItem>
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
           <FieldError :errors="[errors.regencyId]" class="text-sm" />
         </Field>
 

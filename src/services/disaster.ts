@@ -1,12 +1,19 @@
 import { listUrl, request } from "@/lib/http";
-import type { Paginated } from "@/lib/http";
 
 export type DisasterStatus = "Active" | "Inactive";
+export type DisasterSortBy =
+  "disasterCode" | "disasterName" | "disasterCategory";
+export type SortDirection = "asc" | "desc";
 
-export interface DisasterQuery {
+export interface DisasterQuery extends Record<string, unknown> {
   status?: DisasterStatus;
   page: number;
   limit: number;
+  disasterCode?: string;
+  disasterName?: string;
+  disasterCategory?: string;
+  sortBy?: DisasterSortBy | string;
+  sortDir?: SortDirection;
 }
 
 export interface DisasterItem {
@@ -26,9 +33,24 @@ export interface DisasterItem {
 
 export type DisasterListItem = DisasterItem;
 
+export interface DisasterPaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface DisasterApiResponse {
+  data: DisasterListItem[];
+  pagination: DisasterPaginationMeta;
+}
+
 export interface DisasterPage {
   items: DisasterListItem[];
   total: number;
+  pagination: DisasterPaginationMeta;
 }
 
 export interface CreateDisasterPayload {
@@ -43,16 +65,40 @@ export interface CreateDisasterPayload {
 
 export type UpdateDisasterPayload = Partial<CreateDisasterPayload>;
 
+// Helper untuk default pagination jika API tidak mengembalikannya
+const createDefaultPagination = (
+  total: number,
+  query: DisasterQuery,
+): DisasterPaginationMeta => ({
+  total,
+  page: query.page,
+  limit: query.limit,
+  totalPages: Math.ceil(total / query.limit) || 1,
+  hasNextPage: false,
+  hasPreviousPage: false,
+});
+
 export async function fetchDisasters(
   query: DisasterQuery,
 ): Promise<DisasterPage> {
-  const result = await request<
-    Paginated<DisasterListItem> | DisasterListItem[]
-  >(listUrl("/api/disasters", query));
-  if (Array.isArray(result)) return { items: result, total: result.length };
+  const result = await request<any>(listUrl("/api/disasters", query));
+  console.log("res data", result);
+
+  // Ekstrak items dari berbagai format respons API secara otomatis
+  const items: DisasterListItem[] =
+    [result?.data?.data, result?.data, result?.items, result].find(
+      Array.isArray,
+    ) ?? [];
+  // Ambil pagination dari API atau buat default jika tidak ada
+  const pagination: DisasterPaginationMeta =
+    result?.pagination ??
+    result?.data?.pagination ??
+    createDefaultPagination(items.length, query);
+
   return {
-    items: result.items,
-    total: result.meta?.total ?? result.items.length,
+    items,
+    total: pagination.total ?? result?.total ?? items.length,
+    pagination,
   };
 }
 
