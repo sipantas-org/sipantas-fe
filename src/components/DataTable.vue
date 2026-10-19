@@ -61,16 +61,16 @@ const emit = defineEmits<{
 const page = defineModel<number>("page", { default: 1 });
 const limit = defineModel<number>("limit", { default: 10 });
 const sortBy = defineModel<string>("sortBy");
-const sortDir = defineModel<"asc" | "desc">("sortDir", { default: "asc" });
+const sortOrder = defineModel<"asc" | "desc">("sortOrder", { default: "asc" });
 
 const totalCount = computed(() => props.pagination?.total ?? props.total);
 
 function toggleSort(key: string) {
   if (sortBy.value === key) {
-    sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
+    sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
   } else {
     sortBy.value = key;
-    sortDir.value = "asc";
+    sortOrder.value = "asc";
   }
 }
 </script>
@@ -82,11 +82,8 @@ function toggleSort(key: string) {
       v-if="$slots.filters || totalCount !== undefined"
       class="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between"
     >
-      <div class="flex flex-wrap items-center gap-3">
+      <div class="flex w-full flex-wrap items-center gap-3">
         <slot name="filters" />
-      </div>
-      <div class="text-muted-foreground text-sm">
-        <slot name="total" :total="totalCount"> {{ totalCount }} data </slot>
       </div>
     </div>
 
@@ -125,11 +122,11 @@ function toggleSort(key: string) {
             >
               <span>{{ col.label }}</span>
               <RiArrowUpSLine
-                v-if="sortBy === col.key && sortDir === 'asc'"
+                v-if="sortBy === col.key && sortOrder === 'asc'"
                 class="size-4 shrink-0 text-foreground"
               />
               <RiArrowDownSLine
-                v-else-if="sortBy === col.key && sortDir === 'desc'"
+                v-else-if="sortBy === col.key && sortOrder === 'desc'"
                 class="size-4 shrink-0 text-foreground"
               />
               <RiArrowUpDownLine

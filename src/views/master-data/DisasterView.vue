@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import {
   RiAddLine,
-  RiCheckboxCircleLine,
   RiDeleteBinLine,
   RiEditLine,
   RiMoreLine,
   RiCheckLine,
-  RiFilterLine,
 } from "@remixicon/vue";
-import { onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import ConfirmDeleteDialog from "@/components/ConfirmDeleteDialog.vue";
 import DataTable, { type Column } from "@/components/DataTable.vue";
+import DataTableFilter, {
+  type FilterField,
+} from "@/components/DataTableFilter.vue";
 import FormDialog from "@/components/FormDialog.vue";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge, type BadgeVariants } from "@/components/ui/badge";
+import { toast } from "vue-sonner";
 import {
   Field,
   FieldError,
@@ -51,27 +52,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
-const openProvince = ref(false);
-const openRegency = ref(false);
-
+import { storeToRefs } from "pinia";
+import { useDisasterStore } from "@/stores/disaster";
+import { useAreaStore } from "@/stores/area";
 import { ApiError } from "@/lib/http";
 import {
-  createDisaster,
-  deleteDisaster,
-  fetchDisaster,
-  fetchDisasters,
-  updateDisaster,
-  type DisasterSortBy,
-  type SortDirection,
-  type DisasterPaginationMeta,
   type CreateDisasterPayload,
   type DisasterItem,
   type DisasterStatus,
 } from "@/services/disaster";
-import { fetchCities, fetchProvinces, type Region } from "@/services/regions";
-
-const NOTICE_MS = 5000;
 
 const STATUS_META: Record<
   DisasterStatus,
@@ -82,119 +71,90 @@ const STATUS_META: Record<
 };
 const ListStatus = Object.keys(STATUS_META) as DisasterStatus[];
 
-const status = ref<DisasterStatus | "all">("all");
-const filterDisasterCode = ref("");
-const filterDisasterName = ref("");
-const filterDisasterCategory = ref("");
-const sortBy = ref<DisasterSortBy>();
-const sortDir = ref<SortDirection>("asc");
-const limit = ref(10);
-const page = ref(1);
+const disasterStore = useDisasterStore();
+const {
+  items,
+  pagination,
+  total,
+  loading,
+  loadError,
+  page,
+  limit,
+  sortBy,
+  sortOrder,
+} = storeToRefs(disasterStore);
 
-const appliedFilters = reactive({
+const areaStore = useAreaStore();
+const { provinces, cities, loadingCities } = storeToRefs(areaStore);
+
+const openProvince = ref(false);
+const openRegency = ref(false);
+
+const filterValues = reactive({
   status: "all" as DisasterStatus | "all",
   disasterCode: "",
   disasterName: "",
   disasterCategory: "",
 });
 
-const items = ref<DisasterItem[]>([]);
-const pagination = ref<DisasterPaginationMeta>();
-const total = ref(0);
-const loading = ref(false);
-const loadError = ref<string>();
-const notice = ref<string>();
-let noticeTimer: ReturnType<typeof setTimeout> | undefined;
-
-function showNotice(text: string) {
-  notice.value = text;
-  clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(() => {
-    notice.value = undefined;
-  }, NOTICE_MS);
-}
+const filterFields = computed<FilterField[]>(() => [
+  {
+    key: "disasterCode",
+    label: "Kode",
+    type: "text",
+    placeholder: "Masukkan kode...",
+  },
+  {
+    key: "disasterName",
+    label: "Nama Bencana",
+    type: "text",
+    placeholder: "Masukkan nama bencana...",
+  },
+  {
+    key: "disasterCategory",
+    label: "Kategori",
+    type: "text",
+    placeholder: "Masukkan kategori...",
+  },
+  {
+    key: "status",
+    label: "Status",
+    type: "select",
+    placeholder: "Semua status",
+    options: [
+      { label: "Semua status", value: "all" },
+      ...ListStatus.map((s) => ({ label: STATUS_META[s].label, value: s })),
+    ],
+  },
+]);
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : fallback;
 }
 
-let loadId = 0;
-async function loadDataList() {
-  const id = ++loadId;
-  loading.value = true;
-  loadError.value = undefined;
-  try {
-    const result = await fetchDisasters({
-      status:
-        appliedFilters.status === "all"
-          ? undefined
-          : (appliedFilters.status as DisasterStatus),
-      disasterCode: appliedFilters.disasterCode || undefined,
-      disasterName: appliedFilters.disasterName || undefined,
-      disasterCategory: appliedFilters.disasterCategory || undefined,
-      sortBy: sortBy.value,
-      sortDir: sortBy.value ? sortDir.value : undefined,
-      page: page.value,
-      limit: limit.value,
-    });
-
-    console.log(result);
-    if (id !== loadId) return;
-    const res = result as any;
-    items.value = res.items ?? (Array.isArray(res.data) ? res.data : []);
-    total.value = res.total ?? res.pagination?.total ?? items.value.length;
-    pagination.value = res.pagination;
-    if (items.value.length === 0 && page.value > 1) {
-      page.value -= 1;
-    }
-  } catch (error) {
-    if (id === loadId) {
-      loadError.value = errorMessage(error, "Gagal memuat data bencana.");
-    }
-  } finally {
-    if (id === loadId) {
-      loading.value = false;
-    }
-  }
-}
-
 onMounted(async () => {
-  await Promise.all([loadDataList(), loadProvinces()]);
-});
-
-onBeforeUnmount(() => {
-  clearTimeout(noticeTimer);
+  await Promise.all([
+    disasterStore.fetchDisastersList(),
+    areaStore.loadProvinces(),
+  ]);
 });
 
 function applyFilters() {
-  appliedFilters.status = status.value;
-  appliedFilters.disasterCode = filterDisasterCode.value.trim();
-  appliedFilters.disasterName = filterDisasterName.value.trim();
-  appliedFilters.disasterCategory = filterDisasterCategory.value.trim();
-
-  if (page.value !== 1) {
-    page.value = 1;
-  } else {
-    loadDataList();
-  }
+  disasterStore.applyFilters({
+    status: filterValues.status,
+    disasterCode: filterValues.disasterCode,
+    disasterName: filterValues.disasterName,
+    disasterCategory: filterValues.disasterCategory,
+  });
 }
 
 function resetFilters() {
-  status.value = "all";
-  filterDisasterCode.value = "";
-  filterDisasterName.value = "";
-  filterDisasterCategory.value = "";
-  applyFilters();
+  filterValues.status = "all";
+  filterValues.disasterCode = "";
+  filterValues.disasterName = "";
+  filterValues.disasterCategory = "";
+  disasterStore.resetFilters();
 }
-
-watch(page, loadDataList);
-watch([limit, sortBy, sortDir], () => {
-  if (page.value !== 1) {
-    page.value = 1;
-  } else {
-    loadDataList();
-  }
-});
 
 function statusOf(item: DisasterItem) {
   const s = (item.disasterStatus ?? (item as any).status) as DisasterStatus;
@@ -206,40 +166,10 @@ function statusOf(item: DisasterItem) {
   );
 }
 
-// Wilayah
-const provinces = ref<Region[]>([]);
-const cities = ref<Region[]>([]);
-const loadingCities = ref(false);
-
-async function loadProvinces() {
-  try {
-    const res = await fetchProvinces();
-    provinces.value = Array.isArray(res) ? res : ((res as any)?.data ?? []);
-  } catch {
-    provinces.value = [];
-  }
-}
-
-async function loadCities(provinceId: string) {
-  if (!provinceId) {
-    cities.value = [];
-    return;
-  }
-  loadingCities.value = true;
-  try {
-    const res = await fetchCities(provinceId);
-    cities.value = Array.isArray(res) ? res : ((res as any)?.data ?? []);
-  } catch {
-    cities.value = [];
-  } finally {
-    loadingCities.value = false;
-  }
-}
-
 function onProvinceChange(provinceId: string) {
   form.provinceId = provinceId;
   form.regencyId = "";
-  loadCities(provinceId);
+  areaStore.loadCities(provinceId);
 }
 
 // Form Modal
@@ -249,7 +179,7 @@ const formLoading = ref(false);
 const formSubmitting = ref(false);
 const form = reactive({
   disasterName: "",
-  disasterCode: "",
+  disasterDate: "",
   disasterCategory: "",
   description: "",
   provinceId: "",
@@ -263,17 +193,17 @@ async function openCreate() {
   editingId.value = null;
   Object.assign(form, {
     disasterName: "",
-    disasterCode: "",
+    disasterDate: "",
     disasterCategory: "",
     description: "",
     provinceId: "",
     regencyId: "",
     status: "Active",
   });
-  cities.value = [];
+  areaStore.clearCities();
   Object.keys(errors).forEach((key) => delete errors[key as FormKey | "form"]);
   if (provinces.value.length === 0) {
-    await loadProvinces();
+    await areaStore.loadProvinces();
   }
   formOpen.value = true;
 }
@@ -291,7 +221,9 @@ async function openEdit(item: DisasterItem) {
 
   Object.assign(form, {
     disasterName: item.disasterName ?? "",
-    disasterCode: item.disasterCode ?? "",
+    disasterDate: (item as any).disasterDate
+      ? String((item as any).disasterDate).slice(0, 7)
+      : "",
     disasterCategory: item.disasterCategory ?? "",
     description: item.description ?? "",
     provinceId: provId,
@@ -304,11 +236,11 @@ async function openEdit(item: DisasterItem) {
 
   try {
     if (provinces.value.length === 0) {
-      await loadProvinces();
+      await areaStore.loadProvinces();
     }
 
     if (provId) {
-      await loadCities(provId);
+      await areaStore.loadCities(provId);
     }
   } finally {
     formLoading.value = false;
@@ -318,8 +250,8 @@ async function openEdit(item: DisasterItem) {
 function validate() {
   errors.disasterName =
     form.disasterName.trim() === "" ? "Nama bencana wajib diisi." : undefined;
-  errors.disasterCode =
-    form.disasterCode.trim() === "" ? "Kode bencana wajib diisi." : undefined;
+  errors.disasterDate =
+    form.disasterDate.trim() === "" ? "Waktu bencana wajib diisi." : undefined;
   errors.disasterCategory =
     form.disasterCategory.trim() === ""
       ? "Kategori bencana wajib diisi."
@@ -344,23 +276,26 @@ async function onSubmitForm() {
   try {
     const payload: CreateDisasterPayload = {
       disasterName: form.disasterName.trim(),
-      disasterCode: form.disasterCode.trim(),
+      disasterDate: form.disasterDate.trim(),
       disasterCategory: form.disasterCategory.trim(),
       description: form.description.trim(),
       provinceId: form.provinceId,
       regencyId: form.regencyId,
       disasterStatus: form.status,
-    };
+    } as CreateDisasterPayload;
 
     if (editingId.value !== null) {
-      await updateDisaster(Number(editingId.value), payload);
-      showNotice(`Data bencana ${payload.disasterName} berhasil diperbarui.`);
+      await disasterStore.updateItem(editingId.value, payload);
+      toast.success(
+        `Data bencana ${payload.disasterName} berhasil diperbarui.`,
+      );
     } else {
-      await createDisaster(payload);
-      showNotice(`Data bencana ${payload.disasterName} berhasil ditambahkan.`);
+      await disasterStore.createItem(payload);
+      toast.success(
+        `Data bencana ${payload.disasterName} berhasil ditambahkan.`,
+      );
     }
     formOpen.value = false;
-    await loadDataList();
   } catch (error) {
     errors.form = errorMessage(
       error,
@@ -389,12 +324,11 @@ async function submitDelete() {
   deleting.value = true;
   deleteError.value = undefined;
   try {
-    await deleteDisaster(deletingItem.value.disasterId);
+    await disasterStore.deleteItem(deletingItem.value.disasterId);
     const name = deletingItem.value.disasterName;
     isDeleteOpen.value = false;
     deletingItem.value = null;
-    showNotice(`Data bencana ${name} berhasil dihapus.`);
-    await loadDataList();
+    toast.success(`Data bencana ${name} berhasil dihapus.`);
   } catch (error) {
     deleteError.value = errorMessage(
       error,
@@ -433,19 +367,12 @@ const columns: Column<DisasterItem>[] = [
       </Button>
     </div>
 
-    <Alert v-if="notice" role="status" class="text-sm">
-      <RiCheckboxCircleLine />
-      <AlertDescription class="text-sm">
-        {{ notice }}
-      </AlertDescription>
-    </Alert>
-
     <!-- 1. DataTable + Filter Toolbar -->
     <DataTable
       v-model:page="page"
       v-model:limit="limit"
       v-model:sort-by="sortBy"
-      v-model:sort-dir="sortDir"
+      v-model:sort-order="sortOrder"
       :columns="columns"
       :items="items"
       :total="total"
@@ -453,115 +380,19 @@ const columns: Column<DisasterItem>[] = [
       :loading="loading"
       :load-error="loadError"
       :item-key="(item) => item.disasterId"
-      @retry="loadDataList"
+      @retry="disasterStore.fetchDisastersList"
     >
       <!-- Slot Filter Toolbar -->
       <template #filters>
-        <div
-          class="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row sm:items-center sm:gap-2"
-        >
-          <label
-            for="filter-disaster-code"
-            class="text-muted-foreground text-sm shrink-0"
-          >
-            Kode
-          </label>
-          <Input
-            id="filter-disaster-code"
-            v-model="filterDisasterCode"
-            placeholder="Cari kode..."
-            class="h-9 w-full text-sm sm:w-36"
-            @keydown.enter="applyFilters"
-          />
-        </div>
-
-        <div
-          class="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row sm:items-center sm:gap-2"
-        >
-          <label
-            for="filter-disaster-name"
-            class="text-muted-foreground text-sm shrink-0"
-          >
-            Nama
-          </label>
-          <Input
-            id="filter-disaster-name"
-            v-model="filterDisasterName"
-            placeholder="Cari nama bencana..."
-            class="h-9 w-full text-sm sm:w-44"
-            @keydown.enter="applyFilters"
-          />
-        </div>
-
-        <div
-          class="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row sm:items-center sm:gap-2"
-        >
-          <label
-            for="filter-disaster-category"
-            class="text-muted-foreground text-sm shrink-0"
-          >
-            Kategori
-          </label>
-          <Input
-            id="filter-disaster-category"
-            v-model="filterDisasterCategory"
-            placeholder="Cari kategori..."
-            class="h-9 w-full text-sm sm:w-36"
-            @keydown.enter="applyFilters"
-          />
-        </div>
-
-        <div
-          class="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row sm:items-center sm:gap-2"
-        >
-          <label
-            for="status-filter"
-            class="text-muted-foreground text-sm shrink-0"
-          >
-            Status
-          </label>
-          <Select v-model="status">
-            <SelectTrigger
-              id="status-filter"
-              class="w-full text-sm data-[size=default]:h-9 sm:w-36"
-            >
-              <SelectValue placeholder="Semua status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua status</SelectItem>
-              <SelectItem v-for="item in ListStatus" :key="item" :value="item">
-                {{ STATUS_META[item].label }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div class="flex w-full items-center gap-2 pt-1 sm:w-auto sm:pt-0">
-          <Button
-            type="button"
-            class="h-9 flex-1 text-sm sm:flex-none"
-            @click="applyFilters"
-          >
-            <RiFilterLine />
-            Filter
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            class="h-9 flex-1 text-sm sm:flex-none"
-            @click="resetFilters"
-          >
-            Reset
-          </Button>
-        </div>
+        <DataTableFilter
+          v-model="filterValues"
+          :fields="filterFields"
+          @filter="applyFilters"
+          @reset="resetFilters"
+        />
       </template>
 
       <!-- Slot Kustom Baris Data -->
-      <template #cell-disaster="{ item }">
-        <div class="font-medium">{{ item.disasterName }}</div>
-        <div class="text-muted-foreground text-xs">{{ item.disasterCode }}</div>
-      </template>
-
       <template #cell-region="{ item }">
         <div>{{ item.regencyName ?? item.regencyId }}</div>
         <div class="text-muted-foreground text-xs">
@@ -607,21 +438,6 @@ const columns: Column<DisasterItem>[] = [
       @submit="onSubmitForm"
     >
       <FieldGroup>
-        <Field :data-invalid="!!errors.disasterCode">
-          <FieldLabel for="disaster-code" class="text-sm">
-            Kode Bencana
-          </FieldLabel>
-          <Input
-            id="disaster-code"
-            v-model="form.disasterCode"
-            placeholder="Misal: BNC-2023-001"
-            class="h-10 text-sm md:text-sm"
-            :aria-invalid="!!errors.disasterCode"
-            :disabled="formSubmitting"
-          />
-          <FieldError :errors="[errors.disasterCode]" class="text-sm" />
-        </Field>
-
         <Field :data-invalid="!!errors.disasterName">
           <FieldLabel for="disaster-name" class="text-sm">
             Nama Bencana
@@ -635,6 +451,21 @@ const columns: Column<DisasterItem>[] = [
             :disabled="formSubmitting"
           />
           <FieldError :errors="[errors.disasterName]" class="text-sm" />
+        </Field>
+
+        <Field :data-invalid="!!errors.disasterDate">
+          <FieldLabel for="disaster-date" class="text-sm">
+            Waktu Bencana
+          </FieldLabel>
+          <Input
+            id="disaster-date"
+            v-model="form.disasterDate"
+            type="month"
+            class="h-10 text-sm md:text-sm"
+            :aria-invalid="!!errors.disasterDate"
+            :disabled="formSubmitting"
+          />
+          <FieldError :errors="[errors.disasterDate]" class="text-sm" />
         </Field>
 
         <Field :data-invalid="!!errors.disasterCategory">

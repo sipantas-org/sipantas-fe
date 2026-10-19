@@ -3,7 +3,7 @@ import { listUrl, request } from "@/lib/http";
 export type DisasterStatus = "Active" | "Inactive";
 export type DisasterSortBy =
   "disasterCode" | "disasterName" | "disasterCategory";
-export type SortDirection = "asc" | "desc";
+export type SortOrder = "asc" | "desc";
 
 export interface DisasterQuery extends Record<string, unknown> {
   status?: DisasterStatus;
@@ -13,7 +13,7 @@ export interface DisasterQuery extends Record<string, unknown> {
   disasterName?: string;
   disasterCategory?: string;
   sortBy?: DisasterSortBy | string;
-  sortDir?: SortDirection;
+  sortOrder?: SortOrder;
 }
 
 export interface DisasterItem {
@@ -54,7 +54,7 @@ export interface DisasterPage {
 }
 
 export interface CreateDisasterPayload {
-  disasterCode: string;
+  disasterDate: string;
   disasterName: string;
   disasterCategory: string;
   description: string;
@@ -82,7 +82,6 @@ export async function fetchDisasters(
   query: DisasterQuery,
 ): Promise<DisasterPage> {
   const result = await request<any>(listUrl("/api/disasters", query));
-  console.log("res data", result);
 
   // Ekstrak items dari berbagai format respons API secara otomatis
   const items: DisasterListItem[] =
