@@ -14,7 +14,7 @@ import {
   type DisasterStatus,
   type UpdateDisasterPayload,
   type SortOrder,
-} from "@/services/disaster";
+} from "@/services/master/disaster";
 
 export const useDisasterStore = defineStore("disaster", () => {
   const items = ref<DisasterItem[]>([]);

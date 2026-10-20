@@ -43,6 +43,7 @@ const props = withDefaults(
     emptyMessage?: string;
     itemKey?: (item: T, index: number) => string | number;
     showNumbering?: boolean;
+    showPagination?: boolean;
   }>(),
   {
     total: 0,
@@ -51,6 +52,7 @@ const props = withDefaults(
     emptyMessage: "Belum ada data.",
     itemKey: (_item: any, index: number) => index,
     showNumbering: true,
+    showPagination: true,
   },
 );
 
@@ -79,7 +81,7 @@ function toggleSort(key: string) {
   <Card class="gap-0 py-0 text-sm">
     <!-- Toolbar / Filter Header -->
     <div
-      v-if="$slots.filters || totalCount !== undefined"
+      v-if="$slots.filters"
       class="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div class="flex w-full flex-wrap items-center gap-3">
@@ -203,6 +205,7 @@ function toggleSort(key: string) {
 
     <!-- Paginasi -->
     <TablePagination
+      v-if="showPagination"
       v-model:page="page"
       v-model:limit="limit"
       :total="totalCount"

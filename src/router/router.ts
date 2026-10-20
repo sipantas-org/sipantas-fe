@@ -52,6 +52,28 @@ const router = createRouter({
           },
         },
         {
+          path: "/assessment/loss",
+          name: "loss-assessment",
+          component: () => import("@/views/assessment/LossAssessmentView.vue"),
+          meta: {
+            title: "Master Disaster",
+            roles: ["admin"],
+            administratorOnly: true,
+          },
+        },
+        {
+          path: "/assessment/house-damage",
+          name: "house-damage-assessment",
+          component: () =>
+            import("@/views/assessment/HouseDamageAssessmentView.vue"),
+          meta: {
+            title: "Master Disaster",
+            roles: ["admin"],
+            administratorOnly: true,
+          },
+        },
+
+        {
           path: "master/a",
           name: "master-a",
           component: () => import("@/views/PlaceholderView.vue"),

@@ -3,6 +3,7 @@ import {
   RiDatabase2Line,
   RiTeamLine,
   RiUserLine,
+  RiSurveyLine,
 } from "@remixicon/vue";
 import type { Component } from "vue";
 import type { Role } from "@/lib/theme";
@@ -40,6 +41,16 @@ export const NAV_ITEMS: readonly NavItem[] = [
       { label: "Bencana", to: "/master/bencana" },
       { label: "Master A", to: "/master/a" },
       { label: "Master B", to: "/master/b" },
+    ],
+  },
+  {
+    label: "Assessmen",
+    icon: RiSurveyLine,
+    roles: ["admin"],
+    administratorOnly: true,
+    children: [
+      { label: "Assessmen Kerugian", to: "/assessment/loss" },
+      { label: "Assessmen Kerusakan Rumah", to: "/assessment/house-damage" },
     ],
   },
   {

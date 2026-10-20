@@ -71,7 +71,7 @@ import {
   type CreateDisasterPayload,
   type DisasterItem,
   type DisasterStatus,
-} from "@/services/disaster";
+} from "@/services/master/disaster";
 
 const STATUS_META: Record<
   DisasterStatus,
