@@ -18,7 +18,7 @@ export interface FilterOption {
 export interface FilterField {
   key: string;
   label: string;
-  type: "text" | "select";
+  type: "text" | "select" | "month";
   placeholder?: string;
   options?: FilterOption[];
   class?: string;
@@ -63,9 +63,10 @@ const model = defineModel<Record<string, any>>({ required: true });
         </label>
 
         <Input
-          v-if="field.type === 'text'"
+          v-if="field.type === 'text' || field.type === 'month'"
           :id="`filter-${field.key}`"
           v-model="model[field.key]"
+          :type="field.type"
           :placeholder="field.placeholder"
           class="h-9 w-full text-sm"
           @keydown.enter="emit('filter')"

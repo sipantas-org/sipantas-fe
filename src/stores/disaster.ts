@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/http";
 import {
   createDisaster,
   deleteDisaster,
+  fetchDisaster as fetchDisasterApi,
   fetchDisasters,
   updateDisaster,
   type CreateDisasterPayload,
@@ -31,6 +32,7 @@ export const useDisasterStore = defineStore("disaster", () => {
     status: "all" as DisasterStatus | "all",
     disasterCode: "",
     disasterName: "",
+    disasterDate: "",
     disasterCategory: "",
   });
 
@@ -48,6 +50,7 @@ export const useDisasterStore = defineStore("disaster", () => {
             : (appliedFilters.status as DisasterStatus),
         disasterCode: appliedFilters.disasterCode || undefined,
         disasterName: appliedFilters.disasterName || undefined,
+        disasterDate: appliedFilters.disasterDate || undefined,
         disasterCategory: appliedFilters.disasterCategory || undefined,
         sortBy: sortBy.value,
         sortOrder: sortBy.value ? sortOrder.value : undefined,
@@ -77,6 +80,10 @@ export const useDisasterStore = defineStore("disaster", () => {
     }
   }
 
+  async function fetchDisaster(id: number) {
+    return await fetchDisasterApi(id);
+  }
+
   async function createItem(payload: CreateDisasterPayload) {
     await createDisaster(payload);
     await fetchDisastersList();
@@ -96,11 +103,13 @@ export const useDisasterStore = defineStore("disaster", () => {
     status: DisasterStatus | "all";
     disasterCode: string;
     disasterName: string;
+    disasterDate: string;
     disasterCategory: string;
   }) {
     appliedFilters.status = filters.status;
     appliedFilters.disasterCode = filters.disasterCode.trim();
     appliedFilters.disasterName = filters.disasterName.trim();
+    appliedFilters.disasterDate = filters.disasterDate.trim();
     appliedFilters.disasterCategory = filters.disasterCategory.trim();
 
     if (page.value !== 1) {
@@ -114,6 +123,7 @@ export const useDisasterStore = defineStore("disaster", () => {
     appliedFilters.status = "all";
     appliedFilters.disasterCode = "";
     appliedFilters.disasterName = "";
+    appliedFilters.disasterDate = "";
     appliedFilters.disasterCategory = "";
 
     if (page.value !== 1) {
@@ -144,6 +154,7 @@ export const useDisasterStore = defineStore("disaster", () => {
     sortOrder,
     appliedFilters,
     fetchDisastersList,
+    fetchDisaster,
     createItem,
     updateItem,
     deleteItem,

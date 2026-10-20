@@ -3,6 +3,8 @@ import {
   RiAddLine,
   RiDeleteBinLine,
   RiEditLine,
+  RiEyeLine,
+  RiLoader4Line,
   RiMoreLine,
   RiCheckLine,
 } from "@remixicon/vue";
@@ -23,6 +25,14 @@ import {
 } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -37,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import DateRangePicker from "@/components/DateRangePicker.vue";
 
 import { cn } from "@/lib/utils";
 import {
@@ -94,6 +105,7 @@ const filterValues = reactive({
   status: "all" as DisasterStatus | "all",
   disasterCode: "",
   disasterName: "",
+  disasterDate: "",
   disasterCategory: "",
 });
 
@@ -109,6 +121,12 @@ const filterFields = computed<FilterField[]>(() => [
     label: "Nama Bencana",
     type: "text",
     placeholder: "Masukkan nama bencana...",
+  },
+  {
+    key: "disasterDate",
+    label: "Waktu Bencana",
+    type: "month",
+    placeholder: "Pilih bulan & tahun...",
   },
   {
     key: "disasterCategory",
@@ -144,6 +162,7 @@ function applyFilters() {
     status: filterValues.status,
     disasterCode: filterValues.disasterCode,
     disasterName: filterValues.disasterName,
+    disasterDate: filterValues.disasterDate,
     disasterCategory: filterValues.disasterCategory,
   });
 }
@@ -152,6 +171,7 @@ function resetFilters() {
   filterValues.status = "all";
   filterValues.disasterCode = "";
   filterValues.disasterName = "";
+  filterValues.disasterDate = "";
   filterValues.disasterCategory = "";
   disasterStore.resetFilters();
 }
@@ -339,9 +359,31 @@ async function submitDelete() {
   }
 }
 
+// Detail Modal
+const detailOpen = ref(false);
+const detailLoading = ref(false);
+const detailItem = ref<DisasterItem | null>(null);
+
+async function openDetail(item: DisasterItem) {
+  console.log(item);
+  const id = Number(item.disasterId ?? (item as any).id);
+  detailItem.value = item;
+  detailOpen.value = true;
+  detailLoading.value = true;
+  try {
+    const res = await disasterStore.fetchDisaster(id);
+    detailItem.value = ((res as any)?.data ?? res) as DisasterItem;
+  } catch (error) {
+    toast.error(errorMessage(error, "Gagal memuat detail bencana."));
+  } finally {
+    detailLoading.value = false;
+  }
+}
+
 const columns: Column<DisasterItem>[] = [
   { key: "disasterCode", label: "Kode Bencana", sortable: true },
   { key: "disasterName", label: "Nama Bencana", sortable: true },
+  { key: "disasterDate", label: "Waktu Bencana", sortable: true },
   { key: "disasterCategory", label: "Kategori", sortable: true },
   { key: "region", label: "Wilayah" },
   { key: "status", label: "Status" },
@@ -414,6 +456,9 @@ const columns: Column<DisasterItem>[] = [
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" class="w-40">
+            <DropdownMenuItem class="h-9 text-sm" @select="openDetail(item)">
+              <RiEyeLine /> Detail
+            </DropdownMenuItem>
             <DropdownMenuItem class="h-9 text-sm" @select="openEdit(item)">
               <RiEditLine /> Ubah
             </DropdownMenuItem>
@@ -437,7 +482,10 @@ const columns: Column<DisasterItem>[] = [
       :submitting="formSubmitting"
       @submit="onSubmitForm"
     >
-      <FieldGroup>
+      <div v-if="formLoading" class="flex items-center justify-center py-10">
+        <RiLoader4Line class="size-6 animate-spin text-muted-foreground" />
+      </div>
+      <FieldGroup v-else>
         <Field :data-invalid="!!errors.disasterName">
           <FieldLabel for="disaster-name" class="text-sm">
             Nama Bencana
@@ -683,6 +731,83 @@ const columns: Column<DisasterItem>[] = [
         <FieldError :errors="[errors.form]" class="text-sm" />
       </FieldGroup>
     </FormDialog>
+
+    <!-- Modal Detail Bencana -->
+    <Dialog v-model:open="detailOpen">
+      <DialogContent class="sm:max-w-lg">
+        <DialogHeader class="gap-1.5">
+          <DialogTitle class="text-base">Detail Bencana</DialogTitle>
+          <DialogDescription class="text-sm">
+            Rincian informasi data bencana.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div v-if="detailLoading" class="flex items-center justify-center py-8">
+          <RiLoader4Line class="size-6 animate-spin text-muted-foreground" />
+        </div>
+        <div v-else-if="detailItem" class="flex flex-col gap-4 text-sm">
+          <div class="grid grid-cols-2 gap-4 rounded-lg border p-4">
+            <div>
+              <p class="text-xs text-muted-foreground">Kode Bencana</p>
+              <p class="font-medium">{{ detailItem.disasterCode || "-" }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-muted-foreground">Status</p>
+              <div class="mt-0.5">
+                <Badge
+                  :variant="statusOf(detailItem).variant"
+                  class="h-6 px-2.5 text-xs"
+                >
+                  {{ statusOf(detailItem).label }}
+                </Badge>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs text-muted-foreground">Nama Bencana</p>
+              <p class="font-medium">{{ detailItem.disasterName || "-" }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-muted-foreground">Kategori Bencana</p>
+              <p class="font-medium">
+                {{ detailItem.disasterCategory || "-" }}
+              </p>
+            </div>
+            <div>
+              <p class="text-xs text-muted-foreground">Waktu Bencana</p>
+              <p class="font-medium">
+                {{ (detailItem as any).disasterDate || "-" }}
+              </p>
+            </div>
+            <div>
+              <p class="text-xs text-muted-foreground">Wilayah</p>
+              <p class="font-medium">
+                {{ detailItem.regencyName ?? detailItem.regencyId ?? "-" }}
+              </p>
+              <p class="text-xs text-muted-foreground">
+                {{ detailItem.provinceName ?? detailItem.provinceId ?? "" }}
+              </p>
+            </div>
+          </div>
+
+          <div class="rounded-lg border p-4">
+            <p class="text-xs text-muted-foreground">Deskripsi</p>
+            <p class="mt-1 whitespace-pre-wrap font-normal">
+              {{ detailItem.description || "-" }}
+            </p>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            class="h-9 text-sm"
+            @click="detailOpen = false"
+          >
+            Tutup
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- 3. ConfirmDeleteDialog Reusable -->
     <ConfirmDeleteDialog

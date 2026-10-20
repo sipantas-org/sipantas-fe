@@ -12,6 +12,7 @@ export interface DisasterQuery extends Record<string, unknown> {
   disasterCode?: string;
   disasterName?: string;
   disasterCategory?: string;
+  disasterDate?: string;
   sortBy?: DisasterSortBy | string;
   sortOrder?: SortOrder;
 }
