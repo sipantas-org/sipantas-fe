@@ -8,11 +8,11 @@ import AppSidebar from "./AppSidebar.vue";
 <template>
   <SidebarProvider>
     <AppSidebar />
-    <SidebarInset>
+    <SidebarInset class="min-w-0 overflow-x-hidden">
       <AppNavbar />
 
       <main
-        class="flex-1 p-4 shadow-[inset_8px_8px_10px_-8px_rgb(0_0_0/0.13)] md:p-6"
+        class="min-w-0 flex-1 overflow-x-auto p-4 shadow-[inset_8px_8px_10px_-8px_rgb(0_0_0/0.13)] md:p-6"
       >
         <RouterView />
       </main>
