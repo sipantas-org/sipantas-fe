@@ -24,7 +24,7 @@ import { computed } from "vue";
 export type { PaginationMeta };
 
 export interface Column<T> {
-  key: string;
+  key: (keyof T & string) | (string & {});
   label: string;
   headerClass?: string;
   cellClass?: string;
