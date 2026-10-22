@@ -41,6 +41,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
       { label: "Bencana", to: "/master/bencana" },
       { label: "Provinsi", to: "/master/provinsi" },
       { label: "Kabupaten/Kota", to: "/master/kabupaten-kota" },
+      { label: "Kecamatan", to: "/master/kecamatan" },
     ],
   },
   {

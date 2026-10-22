@@ -95,6 +95,16 @@ const router = createRouter({
           },
         },
         {
+          path: "master/kecamatan",
+          name: "master-kecamatan",
+          component: () => import("@/views/master-data/DistrictView.vue"),
+          meta: {
+            title: "Kecamatan",
+            roles: ["admin"],
+            administratorOnly: true,
+          },
+        },
+        {
           path: "user/surveyors",
           name: "surveyors",
           component: () => import("@/views/user/SurveyorsView.vue"),
