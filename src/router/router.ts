@@ -105,6 +105,16 @@ const router = createRouter({
           },
         },
         {
+          path: "master/desa",
+          name: "master-desa",
+          component: () => import("@/views/master-data/VillageView.vue"),
+          meta: {
+            title: "Desa/Kelurahan",
+            roles: ["admin"],
+            administratorOnly: true,
+          },
+        },
+        {
           path: "user/surveyors",
           name: "surveyors",
           component: () => import("@/views/user/SurveyorsView.vue"),
