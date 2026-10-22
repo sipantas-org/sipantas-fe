@@ -114,3 +114,17 @@ export async function request<T>(
 
   return unwrap<T>(data);
 }
+
+// Normalizes list responses: { items, meta } or { data: [...], pagination }, after unwrap().
+export function toPage<T>(result: unknown): { items: T[]; total: number } {
+  const r = result as any;
+  const items: T[] =
+    [r?.items, r?.data?.items, r?.data, r].find(Array.isArray) ?? [];
+  const total =
+    r?.meta?.total ??
+    r?.pagination?.total ??
+    r?.data?.meta?.total ??
+    r?.data?.pagination?.total ??
+    items.length;
+  return { items, total };
+}
