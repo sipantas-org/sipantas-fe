@@ -85,11 +85,11 @@ const router = createRouter({
         },
 
         {
-          path: "master/b",
-          name: "master-b",
-          component: () => import("@/views/PlaceholderView.vue"),
+          path: "master/kabupaten-kota",
+          name: "master-kabupaten-kota",
+          component: () => import("@/views/master-data/RegencyView.vue"),
           meta: {
-            title: "Master B",
+            title: "Kabupaten/Kota",
             roles: ["admin"],
             administratorOnly: true,
           },

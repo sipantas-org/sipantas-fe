@@ -40,7 +40,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     children: [
       { label: "Bencana", to: "/master/bencana" },
       { label: "Provinsi", to: "/master/provinsi" },
-      { label: "Master B", to: "/master/b" },
+      { label: "Kabupaten/Kota", to: "/master/kabupaten-kota" },
     ],
   },
   {
