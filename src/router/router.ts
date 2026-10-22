@@ -97,13 +97,13 @@ const router = createRouter({
         {
           path: "user/surveyors",
           name: "surveyors",
-          component: () => import("@/views/SurveyorsView.vue"),
+          component: () => import("@/views/user/SurveyorsView.vue"),
           meta: { title: "Data Surveyor", roles: ["admin"] },
         },
         {
           path: "user/admins",
           name: "admins",
-          component: () => import("@/views/AdminsView.vue"),
+          component: () => import("@/views/user/AdminsView.vue"),
           meta: {
             title: "Admin Monitoring",
             roles: ["admin"],

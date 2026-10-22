@@ -1,5 +1,4 @@
-import { listUrl, request } from '@/lib/http'
-import type { Paginated } from '@/lib/http'
+import { listUrl, request, toPage } from '@/lib/http'
 import type { AdminUser } from '@/services/auth'
 
 export type AdminStatus = 'Active' | 'Inactive'
@@ -23,10 +22,9 @@ export interface RegisterAdminPayload {
   password: string
 }
 
-// Lists Monitoring admins only. Assumes the same { items, meta } shape as the surveyor list.
+// Lists Monitoring admins only. Response shape is normalized by toPage.
 export async function fetchAdmins(query: AdminQuery): Promise<AdminPage> {
-  const { items, meta } = await request<Paginated<AdminUser>>(listUrl('/api/auth/admin', query))
-  return { items, total: meta.total }
+  return toPage<AdminUser>(await request<unknown>(listUrl('/api/auth/admin', query)))
 }
 
 export function registerAdmin(payload: RegisterAdminPayload) {

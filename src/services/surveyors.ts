@@ -1,5 +1,4 @@
-import { listUrl, request } from '@/lib/http'
-import type { Paginated } from '@/lib/http'
+import { listUrl, request, toPage } from '@/lib/http'
 import type { SurveyorUser } from '@/services/auth'
 
 export type SurveyorStatus = 'Pending' | 'Active' | 'Inactive' | 'Rejected'
@@ -19,8 +18,7 @@ export interface SurveyorPage {
 }
 
 export async function fetchSurveyors(query: SurveyorQuery): Promise<SurveyorPage> {
-  const { items, meta } = await request<Paginated<SurveyorListItem>>(listUrl('/api/auth/surveyor', query))
-  return { items, total: meta.total }
+  return toPage<SurveyorListItem>(await request<unknown>(listUrl('/api/auth/surveyor', query)))
 }
 
 export function reviewSurveyor(id: number, status: ApprovalDecision, description?: string) {
