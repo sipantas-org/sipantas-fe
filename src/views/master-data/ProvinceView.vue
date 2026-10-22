@@ -34,18 +34,16 @@ import { useProvinceStore } from "@/stores/province";
 import type { ProvinceItem } from "@/services/master/province";
 
 const provinceStore = useProvinceStore();
-const { items, total, loading, loadError, page, limit } =
+const { items, total, loading, loadError, page, limit, sortBy, sortOrder } =
   storeToRefs(provinceStore);
 
 const filterValues = reactive({
-  id: provinceStore.appliedFilters.id,
-  name: provinceStore.appliedFilters.name,
+  search: provinceStore.appliedFilters.search,
 });
 
 const filterFields: FilterField[] = [
-  { key: "id", label: "Kode", type: "text", placeholder: "Masukkan kode..." },
   {
-    key: "name",
+    key: "search",
     label: "Nama Provinsi",
     type: "text",
     placeholder: "Masukkan nama provinsi...",
@@ -53,8 +51,8 @@ const filterFields: FilterField[] = [
 ];
 
 const columns: Column<ProvinceItem>[] = [
-  { key: "id", label: "Kode" },
-  { key: "name", label: "Nama Provinsi" },
+  { key: "id", label: "Kode", sortable: true },
+  { key: "name", label: "Nama Provinsi", sortable: true },
   { key: "actions", label: "", align: "right", headerClass: "w-14" },
 ];
 
@@ -65,12 +63,11 @@ function errorMessage(error: unknown, fallback: string) {
 onMounted(provinceStore.fetchProvincesList);
 
 function applyFilters() {
-  provinceStore.applyFilters({ id: filterValues.id, name: filterValues.name });
+  provinceStore.applyFilters({ search: filterValues.search });
 }
 
 function resetFilters() {
-  filterValues.id = "";
-  filterValues.name = "";
+  filterValues.search = "";
   provinceStore.resetFilters();
 }
 
@@ -192,6 +189,8 @@ async function submitDelete() {
     <DataTable
       v-model:page="page"
       v-model:limit="limit"
+      v-model:sort-by="sortBy"
+      v-model:sort-order="sortOrder"
       :columns="columns"
       :items="items"
       :total="total"

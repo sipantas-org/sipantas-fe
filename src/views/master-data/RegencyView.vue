@@ -8,6 +8,7 @@ import {
 import { storeToRefs } from "pinia";
 import { computed, onMounted, reactive, ref } from "vue";
 import { toast } from "vue-sonner";
+import ComboboxSelect from "@/components/ComboboxSelect.vue";
 import ConfirmDeleteDialog from "@/components/ConfirmDeleteDialog.vue";
 import DataTable, { type Column } from "@/components/DataTable.vue";
 import DataTableFilter, {
@@ -29,45 +30,46 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { provinceLoader, provinceResolver } from "@/lib/area-options";
 import { ApiError } from "@/lib/http";
 import { useAreaStore } from "@/stores/area";
 import { useRegencyStore } from "@/stores/regency";
 import type { RegencyItem } from "@/services/master/regency";
 
 const regencyStore = useRegencyStore();
-const { items, total, loading, loadError, page, limit, appliedFilters } =
-  storeToRefs(regencyStore);
+const {
+  items,
+  total,
+  loading,
+  loadError,
+  page,
+  limit,
+  sortBy,
+  sortOrder,
+  appliedFilters,
+} = storeToRefs(regencyStore);
 
+// Province names for the table rows.
 const areaStore = useAreaStore();
 const { provinces } = storeToRefs(areaStore);
 
 const filterValues = reactive({
   provinceId: appliedFilters.value.provinceId || "all",
-  id: appliedFilters.value.id,
-  name: appliedFilters.value.name,
+  search: appliedFilters.value.search,
 });
 
 const filterFields = computed<FilterField[]>(() => [
   {
     key: "provinceId",
     label: "Provinsi",
-    type: "select",
+    type: "combobox",
     placeholder: "Semua provinsi",
-    options: [
-      { label: "Semua provinsi", value: "all" },
-      ...provinces.value.map((p) => ({ label: p.name, value: p.id })),
-    ],
+    allLabel: "Semua provinsi",
+    load: provinceLoader,
+    resolve: provinceResolver,
   },
-  { key: "id", label: "Kode", type: "text", placeholder: "Masukkan kode..." },
   {
-    key: "name",
+    key: "search",
     label: "Nama Kabupaten/Kota",
     type: "text",
     placeholder: "Masukkan nama...",
@@ -75,8 +77,8 @@ const filterFields = computed<FilterField[]>(() => [
 ]);
 
 const columns: Column<RegencyItem>[] = [
-  { key: "id", label: "Kode" },
-  { key: "name", label: "Nama Kabupaten/Kota" },
+  { key: "id", label: "Kode", sortable: true },
+  { key: "name", label: "Nama Kabupaten/Kota", sortable: true },
   { key: "province", label: "Provinsi" },
   { key: "actions", label: "", align: "right", headerClass: "w-14" },
 ];
@@ -89,23 +91,22 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : fallback;
 }
 
-onMounted(async () => {
-  await areaStore.loadProvinces();
-  await regencyStore.fetchRegenciesList();
+onMounted(() => {
+  areaStore.loadProvinces();
+  regencyStore.fetchRegenciesList();
 });
 
 function applyFilters() {
   regencyStore.applyFilters({
-    provinceId: filterValues.provinceId === "all" ? "" : filterValues.provinceId,
-    id: filterValues.id,
-    name: filterValues.name,
+    provinceId:
+      filterValues.provinceId === "all" ? "" : filterValues.provinceId,
+    search: filterValues.search,
   });
 }
 
 function resetFilters() {
   filterValues.provinceId = "all";
-  filterValues.id = "";
-  filterValues.name = "";
+  filterValues.search = "";
   regencyStore.resetFilters();
 }
 
@@ -241,6 +242,8 @@ async function submitDelete() {
     <DataTable
       v-model:page="page"
       v-model:limit="limit"
+      v-model:sort-by="sortBy"
+      v-model:sort-order="sortOrder"
       :columns="columns"
       :items="items"
       :total="total"
@@ -305,28 +308,17 @@ async function submitDelete() {
           <FieldLabel for="regency-province" class="text-sm">
             Provinsi
           </FieldLabel>
-          <Select
+          <ComboboxSelect
+            id="regency-province"
             v-model="form.provinceId"
+            :load="provinceLoader"
+            :resolve="provinceResolver"
+            placeholder="Pilih provinsi..."
+            search-placeholder="Cari provinsi..."
+            trigger-class="h-10"
+            :invalid="!!errors.provinceId"
             :disabled="formSubmitting || editingId !== null"
-          >
-            <SelectTrigger
-              id="regency-province"
-              class="w-full text-sm data-[size=default]:h-10"
-              :aria-invalid="!!errors.provinceId"
-            >
-              <SelectValue placeholder="Pilih provinsi..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem
-                v-for="province in provinces"
-                :key="province.id"
-                :value="province.id"
-                class="text-sm"
-              >
-                {{ province.name }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          />
           <FieldError :errors="[errors.provinceId]" class="text-sm" />
         </Field>
 

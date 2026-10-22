@@ -6,8 +6,9 @@ import {
   RiMoreLine,
 } from "@remixicon/vue";
 import { storeToRefs } from "pinia";
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { toast } from "vue-sonner";
+import ComboboxSelect from "@/components/ComboboxSelect.vue";
 import ConfirmDeleteDialog from "@/components/ConfirmDeleteDialog.vue";
 import DataTable, { type Column } from "@/components/DataTable.vue";
 import DataTableFilter, {
@@ -30,15 +31,15 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  districtLoader,
+  districtResolver,
+  provinceLoader,
+  provinceResolver,
+  regencyLoader,
+  regencyResolver,
+} from "@/lib/area-options";
 import { ApiError } from "@/lib/http";
-import { useAreaStore } from "@/stores/area";
-import { useDistrictStore } from "@/stores/district";
+import { useAreaNamesStore } from "@/stores/area-names";
 import { useVillageStore } from "@/stores/village";
 import type { VillageItem } from "@/services/master/village";
 
@@ -48,100 +49,67 @@ const {
   total,
   loading,
   loadError,
-  districtsByRegency,
   page,
   limit,
+  sortBy,
+  sortOrder,
   appliedFilters,
 } = storeToRefs(villageStore);
 
-const areaStore = useAreaStore();
-const { provinces } = storeToRefs(areaStore);
-
-// Regencies are shared with the district page.
-const districtStore = useDistrictStore();
-const { regencies } = storeToRefs(districtStore);
-
-function regenciesOf(provinceId: string) {
-  return provinceId && provinceId !== "all"
-    ? regencies.value.filter((r) => r.provinceId === provinceId)
-    : regencies.value;
-}
-
-function districtsOf(regencyId: string) {
-  return regencyId && regencyId !== "all"
-    ? (districtsByRegency.value[regencyId] ?? [])
-    : [];
-}
+// District and regency names for the table rows are looked up per row.
+const names = useAreaNamesStore();
 
 const filterValues = reactive({
   provinceId: appliedFilters.value.provinceId || "all",
   regencyId: appliedFilters.value.regencyId || "all",
   districtId: appliedFilters.value.districtId || "all",
-  id: appliedFilters.value.id,
-  name: appliedFilters.value.name,
+  search: appliedFilters.value.search,
 });
 
-// A child selection from another parent must not stay selected.
-watch(
-  () => filterValues.provinceId,
-  () => {
-    const valid = regenciesOf(filterValues.provinceId).some(
-      (r) => r.id === filterValues.regencyId,
-    );
-    if (!valid) filterValues.regencyId = "all";
-  },
-);
-watch(
-  () => filterValues.regencyId,
-  (regencyId) => {
-    if (regencyId !== "all") villageStore.loadDistricts(regencyId);
-    const valid = districtsOf(regencyId).some(
-      (d) => d.id === filterValues.districtId,
-    );
-    if (!valid) filterValues.districtId = "all";
-  },
-);
-
+// Each dropdown follows its parent; all of them are sent to the API.
 const filterFields = computed<FilterField[]>(() => [
   {
     key: "provinceId",
     label: "Provinsi",
-    type: "select",
-    placeholder: "Pilih provinsi...",
-    options: [
-      { label: "Semua provinsi", value: "all" },
-      ...provinces.value.map((p) => ({ label: p.name, value: p.id })),
-    ],
+    type: "combobox",
+    placeholder: "Semua provinsi",
+    allLabel: "Semua provinsi",
+    load: provinceLoader,
+    resolve: provinceResolver,
+    onChange: () => {
+      filterValues.regencyId = "all";
+      filterValues.districtId = "all";
+    },
   },
   {
     key: "regencyId",
     label: "Kabupaten/Kota",
-    type: "select",
-    placeholder: "Pilih kabupaten/kota...",
-    options: [
-      { label: "Semua kabupaten/kota", value: "all" },
-      ...regenciesOf(filterValues.provinceId).map((r) => ({
-        label: r.name,
-        value: r.id,
-      })),
-    ],
+    type: "combobox",
+    placeholder: "Semua kabupaten/kota",
+    allLabel: "Semua kabupaten/kota",
+    load: regencyLoader(
+      filterValues.provinceId === "all" ? "" : filterValues.provinceId,
+    ),
+    resolve: regencyResolver,
+    reloadKey: filterValues.provinceId,
+    onChange: () => {
+      filterValues.districtId = "all";
+    },
   },
   {
     key: "districtId",
     label: "Kecamatan",
-    type: "select",
-    placeholder: "Pilih kecamatan...",
-    options: [
-      { label: "Pilih kecamatan", value: "all" },
-      ...districtsOf(filterValues.regencyId).map((d) => ({
-        label: d.name,
-        value: d.id,
-      })),
-    ],
+    type: "combobox",
+    placeholder: "Semua kecamatan",
+    allLabel: "Semua kecamatan",
+    load: districtLoader(
+      filterValues.regencyId === "all" ? "" : filterValues.regencyId,
+    ),
+    resolve: districtResolver,
+    reloadKey: filterValues.regencyId,
   },
-  { key: "id", label: "Kode", type: "text", placeholder: "Masukkan kode..." },
   {
-    key: "name",
+    key: "search",
     label: "Nama Desa/Kelurahan",
     type: "text",
     placeholder: "Masukkan nama...",
@@ -149,50 +117,32 @@ const filterFields = computed<FilterField[]>(() => [
 ]);
 
 const columns: Column<VillageItem>[] = [
-  { key: "id", label: "Kode" },
-  { key: "name", label: "Nama Desa/Kelurahan" },
+  { key: "id", label: "Kode", sortable: true },
+  { key: "name", label: "Nama Desa/Kelurahan", sortable: true },
   { key: "region", label: "Wilayah" },
   { key: "actions", label: "", align: "right", headerClass: "w-14" },
 ];
 
-const emptyMessage = computed(() =>
-  appliedFilters.value.districtId
-    ? "Tidak ada desa/kelurahan yang cocok."
-    : "Pilih kecamatan pada filter, lalu klik Filter.",
-);
-
-function districtOf(districtId: string) {
-  return Object.values(districtsByRegency.value)
-    .flat()
-    .find((d) => d.id === districtId);
-}
-
-function regencyName(id?: string) {
-  return regencies.value.find((r) => r.id === id)?.name ?? id ?? "";
+function regencyOfDistrict(districtId: string) {
+  return names.regencies[names.districts[districtId]?.regencyId ?? ""];
 }
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : fallback;
 }
 
-onMounted(async () => {
-  await Promise.all([areaStore.loadProvinces(), districtStore.loadRegencies()]);
-  await villageStore.loadDistricts(appliedFilters.value.regencyId);
-  await villageStore.fetchVillagesList();
+onMounted(() => {
+  villageStore.fetchVillagesList();
 });
 
 function applyFilters() {
-  if (filterValues.districtId === "all") {
-    toast.error("Pilih provinsi, kabupaten/kota, dan kecamatan terlebih dahulu.");
-    return;
-  }
   villageStore.applyFilters({
     provinceId:
       filterValues.provinceId === "all" ? "" : filterValues.provinceId,
     regencyId: filterValues.regencyId === "all" ? "" : filterValues.regencyId,
-    districtId: filterValues.districtId,
-    id: filterValues.id,
-    name: filterValues.name,
+    districtId:
+      filterValues.districtId === "all" ? "" : filterValues.districtId,
+    search: filterValues.search,
   });
 }
 
@@ -200,8 +150,7 @@ function resetFilters() {
   filterValues.provinceId = "all";
   filterValues.regencyId = "all";
   filterValues.districtId = "all";
-  filterValues.id = "";
-  filterValues.name = "";
+  filterValues.search = "";
   villageStore.resetFilters();
 }
 
@@ -220,37 +169,27 @@ const form = reactive({
 type FormKey = keyof typeof form;
 const errors = reactive<Partial<Record<FormKey | "form", string>>>({});
 
-const formRegencies = computed(() =>
-  form.provinceId ? regenciesOf(form.provinceId) : [],
-);
-const formDistricts = computed(() => districtsOf(form.regencyId));
-
-watch(
-  () => form.provinceId,
-  () => {
-    if (!formRegencies.value.some((r) => r.id === form.regencyId))
-      form.regencyId = "";
-  },
-);
-watch(
-  () => form.regencyId,
-  (regencyId) => {
-    if (regencyId) villageStore.loadDistricts(regencyId);
-    if (!formDistricts.value.some((d) => d.id === form.districtId))
-      form.districtId = "";
-  },
-);
-
 function clearErrors() {
   Object.keys(errors).forEach((key) => delete errors[key as FormKey | "form"]);
 }
 
-function openCreate() {
+// Fills the parent selections of a district (regency and province) from the lookup cache.
+async function parentsOf(districtId: string) {
+  if (!districtId) return { provinceId: "", regencyId: "" };
+  await names.ensureDistricts([districtId]);
+  const regencyId = names.districts[districtId]?.regencyId ?? "";
+  return {
+    provinceId: names.regencies[regencyId]?.provinceId ?? "",
+    regencyId,
+  };
+}
+
+async function openCreate() {
   editingId.value = null;
+  const districtId = appliedFilters.value.districtId;
   Object.assign(form, {
-    provinceId: appliedFilters.value.provinceId,
-    regencyId: appliedFilters.value.regencyId,
-    districtId: appliedFilters.value.districtId,
+    ...(await parentsOf(districtId)),
+    districtId,
     id: "",
     name: "",
   });
@@ -258,11 +197,10 @@ function openCreate() {
   formOpen.value = true;
 }
 
-function openEdit(item: VillageItem) {
+async function openEdit(item: VillageItem) {
   editingId.value = item.id;
   Object.assign(form, {
-    provinceId: appliedFilters.value.provinceId,
-    regencyId: appliedFilters.value.regencyId,
+    ...(await parentsOf(item.districtId)),
     districtId: item.districtId,
     id: item.id,
     name: item.name,
@@ -373,12 +311,14 @@ async function submitDelete() {
     <DataTable
       v-model:page="page"
       v-model:limit="limit"
+      v-model:sort-by="sortBy"
+      v-model:sort-order="sortOrder"
       :columns="columns"
       :items="items"
       :total="total"
       :loading="loading"
       :load-error="loadError"
-      :empty-message="emptyMessage"
+      empty-message="Tidak ada desa/kelurahan yang cocok."
       :item-key="(item) => item.id"
       @retry="villageStore.fetchVillagesList"
     >
@@ -392,9 +332,9 @@ async function submitDelete() {
       </template>
 
       <template #cell-region="{ item }">
-        <div>{{ districtOf(item.districtId)?.name ?? item.districtId }}</div>
+        <div>{{ names.districts[item.districtId]?.name ?? item.districtId }}</div>
         <div class="text-muted-foreground text-xs">
-          {{ regencyName(districtOf(item.districtId)?.regencyId) }}
+          {{ regencyOfDistrict(item.districtId)?.name ?? "" }}
         </div>
       </template>
 
@@ -440,28 +380,21 @@ async function submitDelete() {
           <FieldLabel for="village-province" class="text-sm">
             Provinsi
           </FieldLabel>
-          <Select
+          <ComboboxSelect
+            id="village-province"
             v-model="form.provinceId"
+            :load="provinceLoader"
+            :resolve="provinceResolver"
+            placeholder="Pilih provinsi..."
+            search-placeholder="Cari provinsi..."
+            trigger-class="h-10"
+            :invalid="!!errors.provinceId"
             :disabled="formSubmitting || editingId !== null"
-          >
-            <SelectTrigger
-              id="village-province"
-              class="w-full text-sm data-[size=default]:h-10"
-              :aria-invalid="!!errors.provinceId"
-            >
-              <SelectValue placeholder="Pilih provinsi..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem
-                v-for="province in provinces"
-                :key="province.id"
-                :value="province.id"
-                class="text-sm"
-              >
-                {{ province.name }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            @change="
+              form.regencyId = '';
+              form.districtId = '';
+            "
+          />
           <FieldError :errors="[errors.provinceId]" class="text-sm" />
         </Field>
 
@@ -469,30 +402,21 @@ async function submitDelete() {
           <FieldLabel for="village-regency" class="text-sm">
             Kabupaten/Kota
           </FieldLabel>
-          <Select
+          <ComboboxSelect
+            id="village-regency"
             v-model="form.regencyId"
+            :load="regencyLoader(form.provinceId)"
+            :resolve="regencyResolver"
+            :reload-key="form.provinceId"
+            placeholder="Pilih kabupaten/kota..."
+            search-placeholder="Cari kabupaten/kota..."
+            trigger-class="h-10"
+            :invalid="!!errors.regencyId"
             :disabled="
               formSubmitting || editingId !== null || form.provinceId === ''
             "
-          >
-            <SelectTrigger
-              id="village-regency"
-              class="w-full text-sm data-[size=default]:h-10"
-              :aria-invalid="!!errors.regencyId"
-            >
-              <SelectValue placeholder="Pilih kabupaten/kota..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem
-                v-for="regency in formRegencies"
-                :key="regency.id"
-                :value="regency.id"
-                class="text-sm"
-              >
-                {{ regency.name }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            @change="form.districtId = ''"
+          />
           <FieldError :errors="[errors.regencyId]" class="text-sm" />
         </Field>
 
@@ -500,30 +424,20 @@ async function submitDelete() {
           <FieldLabel for="village-district" class="text-sm">
             Kecamatan
           </FieldLabel>
-          <Select
+          <ComboboxSelect
+            id="village-district"
             v-model="form.districtId"
+            :load="districtLoader(form.regencyId)"
+            :resolve="districtResolver"
+            :reload-key="form.regencyId"
+            placeholder="Pilih kecamatan..."
+            search-placeholder="Cari kecamatan..."
+            trigger-class="h-10"
+            :invalid="!!errors.districtId"
             :disabled="
               formSubmitting || editingId !== null || form.regencyId === ''
             "
-          >
-            <SelectTrigger
-              id="village-district"
-              class="w-full text-sm data-[size=default]:h-10"
-              :aria-invalid="!!errors.districtId"
-            >
-              <SelectValue placeholder="Pilih kecamatan..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem
-                v-for="district in formDistricts"
-                :key="district.id"
-                :value="district.id"
-                class="text-sm"
-              >
-                {{ district.name }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          />
           <FieldError :errors="[errors.districtId]" class="text-sm" />
         </Field>
 

@@ -1,48 +1,36 @@
 import { defineStore } from "pinia";
-import { computed, reactive, ref, watch } from "vue";
+import { reactive, ref, watch } from "vue";
 import { ApiError } from "@/lib/http";
+import type { SortOrder } from "@/services/master/disaster";
+import type { AreaSortBy } from "@/services/master/province";
 import {
   createRegency,
   deleteRegency,
-  fetchRegencyList,
+  fetchRegencyPage,
   updateRegency,
   type CreateRegencyPayload,
   type RegencyItem,
   type UpdateRegencyPayload,
 } from "@/services/master/regency";
 import { useAreaStore } from "@/stores/area";
+import { useAreaNamesStore } from "@/stores/area-names";
 
 export const useRegencyStore = defineStore("regency", () => {
-  const all = ref<RegencyItem[]>([]);
+  const items = ref<RegencyItem[]>([]);
+  const total = ref(0);
   const loading = ref(false);
   const loadError = ref<string>();
 
   const page = ref(1);
   const limit = ref(10);
+  const sortBy = ref<AreaSortBy>();
+  const sortOrder = ref<SortOrder>("asc");
 
   // An empty provinceId lists every regency.
   const appliedFilters = reactive({
     provinceId: "",
-    id: "",
-    name: "",
+    search: "",
   });
-
-  // The API has no paging or search, so both are applied here.
-  const filtered = computed(() => {
-    const name = appliedFilters.name.toLowerCase();
-    return all.value.filter(
-      (item) =>
-        item.id.includes(appliedFilters.id) &&
-        item.name.toLowerCase().includes(name),
-    );
-  });
-  const total = computed(() => filtered.value.length);
-  const items = computed(() =>
-    filtered.value.slice(
-      (page.value - 1) * limit.value,
-      page.value * limit.value,
-    ),
-  );
 
   // Only the latest request may update the table.
   let loadId = 0;
@@ -52,16 +40,21 @@ export const useRegencyStore = defineStore("regency", () => {
     loading.value = true;
     loadError.value = undefined;
     try {
-      const result = await fetchRegencyList(
-        appliedFilters.provinceId || undefined,
-      );
+      const result = await fetchRegencyPage({
+        provinceId: appliedFilters.provinceId || undefined,
+        search: appliedFilters.search || undefined,
+        sortBy: sortBy.value,
+        sortOrder: sortBy.value ? sortOrder.value : undefined,
+        page: page.value,
+        limit: limit.value,
+      });
 
       if (id !== loadId) return;
-      all.value = result;
-      // Deleting the last row of a page can leave it empty; step back.
-      const lastPage = Math.max(1, Math.ceil(total.value / limit.value));
-      if (page.value > lastPage) {
-        page.value = lastPage;
+      items.value = result.items;
+      total.value = result.total;
+      // Deleting the last row of a page can leave it empty; step back one page.
+      if (items.value.length === 0 && page.value > 1) {
+        page.value -= 1;
       }
     } catch (error) {
       if (id === loadId) {
@@ -90,34 +83,38 @@ export const useRegencyStore = defineStore("regency", () => {
 
   async function updateItem(id: string, payload: UpdateRegencyPayload) {
     await updateRegency(id, payload);
+    useAreaNamesStore().forgetRegency(id);
     await refreshAfterChange();
   }
 
   async function deleteItem(id: string) {
     await deleteRegency(id);
+    useAreaNamesStore().forgetRegency(id);
     await refreshAfterChange();
   }
 
-  function applyFilters(filters: {
-    provinceId: string;
-    id: string;
-    name: string;
-  }) {
-    // Rows of the previous province must not stay visible while the new list loads.
-    if (filters.provinceId !== appliedFilters.provinceId) all.value = [];
+  function applyFilters(filters: { provinceId: string; search: string }) {
     appliedFilters.provinceId = filters.provinceId;
-    appliedFilters.id = filters.id.trim();
-    appliedFilters.name = filters.name.trim();
-    page.value = 1;
-    fetchRegenciesList();
+    appliedFilters.search = filters.search.trim();
+
+    if (page.value !== 1) {
+      page.value = 1;
+    } else {
+      fetchRegenciesList();
+    }
   }
 
   function resetFilters() {
-    applyFilters({ provinceId: "", id: "", name: "" });
+    applyFilters({ provinceId: "", search: "" });
   }
 
-  watch(limit, () => {
-    page.value = 1;
+  watch(page, fetchRegenciesList);
+  watch([limit, sortBy, sortOrder], () => {
+    if (page.value !== 1) {
+      page.value = 1;
+    } else {
+      fetchRegenciesList();
+    }
   });
 
   return {
@@ -127,6 +124,8 @@ export const useRegencyStore = defineStore("regency", () => {
     loadError,
     page,
     limit,
+    sortBy,
+    sortOrder,
     appliedFilters,
     fetchRegenciesList,
     createItem,

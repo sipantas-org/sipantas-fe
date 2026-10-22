@@ -1,11 +1,13 @@
 import { defineStore } from "pinia";
-import { computed, reactive, ref, watch } from "vue";
+import { reactive, ref, watch } from "vue";
 import { ApiError } from "@/lib/http";
+import type { SortOrder } from "@/services/master/disaster";
 import {
   createProvince,
   deleteProvince,
-  fetchProvinceList,
+  fetchProvincePage,
   updateProvince,
+  type AreaSortBy,
   type CreateProvincePayload,
   type ProvinceItem,
   type UpdateProvincePayload,
@@ -13,31 +15,19 @@ import {
 import { useAreaStore } from "@/stores/area";
 
 export const useProvinceStore = defineStore("province", () => {
-  const all = ref<ProvinceItem[]>([]);
+  const items = ref<ProvinceItem[]>([]);
+  const total = ref(0);
   const loading = ref(false);
   const loadError = ref<string>();
 
   const page = ref(1);
   const limit = ref(10);
+  const sortBy = ref<AreaSortBy>();
+  const sortOrder = ref<SortOrder>("asc");
 
   const appliedFilters = reactive({
-    id: "",
-    name: "",
+    search: "",
   });
-
-  // The API has no paging or search, so both are applied here.
-  const filtered = computed(() => {
-    const name = appliedFilters.name.toLowerCase();
-    return all.value.filter(
-      (item) =>
-        item.id.includes(appliedFilters.id) &&
-        item.name.toLowerCase().includes(name),
-    );
-  });
-  const total = computed(() => filtered.value.length);
-  const items = computed(() =>
-    filtered.value.slice((page.value - 1) * limit.value, page.value * limit.value),
-  );
 
   // Only the latest request may update the table.
   let loadId = 0;
@@ -47,14 +37,20 @@ export const useProvinceStore = defineStore("province", () => {
     loading.value = true;
     loadError.value = undefined;
     try {
-      const result = await fetchProvinceList();
+      const result = await fetchProvincePage({
+        search: appliedFilters.search || undefined,
+        sortBy: sortBy.value,
+        sortOrder: sortBy.value ? sortOrder.value : undefined,
+        page: page.value,
+        limit: limit.value,
+      });
 
       if (id !== loadId) return;
-      all.value = result;
-      // Deleting the last row of a page can leave it empty; step back.
-      const lastPage = Math.max(1, Math.ceil(total.value / limit.value));
-      if (page.value > lastPage) {
-        page.value = lastPage;
+      items.value = result.items;
+      total.value = result.total;
+      // Deleting the last row of a page can leave it empty; step back one page.
+      if (items.value.length === 0 && page.value > 1) {
+        page.value -= 1;
       }
     } catch (error) {
       if (id === loadId) {
@@ -91,18 +87,27 @@ export const useProvinceStore = defineStore("province", () => {
     await refreshAfterChange();
   }
 
-  function applyFilters(filters: { id: string; name: string }) {
-    appliedFilters.id = filters.id.trim();
-    appliedFilters.name = filters.name.trim();
-    page.value = 1;
+  function applyFilters(filters: { search: string }) {
+    appliedFilters.search = filters.search.trim();
+
+    if (page.value !== 1) {
+      page.value = 1;
+    } else {
+      fetchProvincesList();
+    }
   }
 
   function resetFilters() {
-    applyFilters({ id: "", name: "" });
+    applyFilters({ search: "" });
   }
 
-  watch(limit, () => {
-    page.value = 1;
+  watch(page, fetchProvincesList);
+  watch([limit, sortBy, sortOrder], () => {
+    if (page.value !== 1) {
+      page.value = 1;
+    } else {
+      fetchProvincesList();
+    }
   });
 
   return {
@@ -112,6 +117,8 @@ export const useProvinceStore = defineStore("province", () => {
     loadError,
     page,
     limit,
+    sortBy,
+    sortOrder,
     appliedFilters,
     fetchProvincesList,
     createItem,

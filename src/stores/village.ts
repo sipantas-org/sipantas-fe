@@ -1,86 +1,67 @@
 import { defineStore } from "pinia";
-import { computed, reactive, ref, watch } from "vue";
+import { reactive, ref, watch } from "vue";
 import { ApiError } from "@/lib/http";
-import { fetchDistrictList, type DistrictItem } from "@/services/master/district";
+import type { SortOrder } from "@/services/master/disaster";
+import type { AreaSortBy } from "@/services/master/province";
 import {
   createVillage,
   deleteVillage,
-  fetchVillageList,
+  fetchVillagePage,
   updateVillage,
   type CreateVillagePayload,
   type UpdateVillagePayload,
   type VillageItem,
 } from "@/services/master/village";
+import { useAreaNamesStore } from "@/stores/area-names";
 
 export const useVillageStore = defineStore("village", () => {
-  const all = ref<VillageItem[]>([]);
+  const items = ref<VillageItem[]>([]);
+  const total = ref(0);
   const loading = ref(false);
   const loadError = ref<string>();
 
-  // Districts per regency, for the cascading dropdowns.
-  const districtsByRegency = reactive<Record<string, DistrictItem[]>>({});
-
   const page = ref(1);
   const limit = ref(10);
+  const sortBy = ref<AreaSortBy>();
+  const sortOrder = ref<SortOrder>("asc");
 
-  // districtId is required: the API list for all villages is too large.
-  // provinceId and regencyId only restore the dropdowns; they are not sent.
+  // Empty provinceId/regencyId/districtId do not filter.
   const appliedFilters = reactive({
     provinceId: "",
     regencyId: "",
     districtId: "",
-    id: "",
-    name: "",
+    search: "",
   });
-
-  // The API has no paging or search, so both are applied here.
-  const filtered = computed(() => {
-    const name = appliedFilters.name.toLowerCase();
-    return all.value.filter(
-      (item) =>
-        item.id.includes(appliedFilters.id) &&
-        item.name.toLowerCase().includes(name),
-    );
-  });
-  const total = computed(() => filtered.value.length);
-  const items = computed(() =>
-    filtered.value.slice(
-      (page.value - 1) * limit.value,
-      page.value * limit.value,
-    ),
-  );
-
-  async function loadDistricts(regencyId: string) {
-    if (!regencyId || districtsByRegency[regencyId]) return;
-    try {
-      districtsByRegency[regencyId] = await fetchDistrictList(regencyId);
-    } catch {
-      // Not cached, so the next selection tries again.
-    }
-  }
 
   // Only the latest request may update the table.
   let loadId = 0;
 
   async function fetchVillagesList() {
     const id = ++loadId;
-    loadError.value = undefined;
-    if (!appliedFilters.districtId) {
-      all.value = [];
-      loading.value = false;
-      return;
-    }
     loading.value = true;
+    loadError.value = undefined;
     try {
-      const result = await fetchVillageList(appliedFilters.districtId);
+      const result = await fetchVillagePage({
+        provinceId: appliedFilters.provinceId || undefined,
+        regencyId: appliedFilters.regencyId || undefined,
+        districtId: appliedFilters.districtId || undefined,
+        search: appliedFilters.search || undefined,
+        sortBy: sortBy.value,
+        sortOrder: sortBy.value ? sortOrder.value : undefined,
+        page: page.value,
+        limit: limit.value,
+      });
 
       if (id !== loadId) return;
-      all.value = result;
-      // Deleting the last row of a page can leave it empty; step back.
-      const lastPage = Math.max(1, Math.ceil(total.value / limit.value));
-      if (page.value > lastPage) {
-        page.value = lastPage;
+      items.value = result.items;
+      total.value = result.total;
+      // Deleting the last row of a page can leave it empty; step back one page.
+      if (items.value.length === 0 && page.value > 1) {
+        page.value -= 1;
       }
+      useAreaNamesStore().ensureDistricts(
+        result.items.map((i) => i.districtId),
+      );
     } catch (error) {
       if (id === loadId) {
         loadError.value =
@@ -114,32 +95,31 @@ export const useVillageStore = defineStore("village", () => {
     provinceId: string;
     regencyId: string;
     districtId: string;
-    id: string;
-    name: string;
+    search: string;
   }) {
-    // Rows of the previous district must not stay visible while the new list loads.
-    if (filters.districtId !== appliedFilters.districtId) all.value = [];
     appliedFilters.provinceId = filters.provinceId;
     appliedFilters.regencyId = filters.regencyId;
     appliedFilters.districtId = filters.districtId;
-    appliedFilters.id = filters.id.trim();
-    appliedFilters.name = filters.name.trim();
-    page.value = 1;
-    fetchVillagesList();
+    appliedFilters.search = filters.search.trim();
+
+    if (page.value !== 1) {
+      page.value = 1;
+    } else {
+      fetchVillagesList();
+    }
   }
 
   function resetFilters() {
-    applyFilters({
-      provinceId: "",
-      regencyId: "",
-      districtId: "",
-      id: "",
-      name: "",
-    });
+    applyFilters({ provinceId: "", regencyId: "", districtId: "", search: "" });
   }
 
-  watch(limit, () => {
-    page.value = 1;
+  watch(page, fetchVillagesList);
+  watch([limit, sortBy, sortOrder], () => {
+    if (page.value !== 1) {
+      page.value = 1;
+    } else {
+      fetchVillagesList();
+    }
   });
 
   return {
@@ -147,11 +127,11 @@ export const useVillageStore = defineStore("village", () => {
     total,
     loading,
     loadError,
-    districtsByRegency,
     page,
     limit,
+    sortBy,
+    sortOrder,
     appliedFilters,
-    loadDistricts,
     fetchVillagesList,
     createItem,
     updateItem,

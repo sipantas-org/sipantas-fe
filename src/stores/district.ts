@@ -1,66 +1,36 @@
 import { defineStore } from "pinia";
-import { computed, reactive, ref, watch } from "vue";
+import { reactive, ref, watch } from "vue";
 import { ApiError } from "@/lib/http";
 import {
   createDistrict,
   deleteDistrict,
-  fetchDistrictList,
+  fetchDistrictPage,
   updateDistrict,
   type CreateDistrictPayload,
   type DistrictItem,
   type UpdateDistrictPayload,
 } from "@/services/master/district";
-import { fetchRegencyList, type RegencyItem } from "@/services/master/regency";
+import type { SortOrder } from "@/services/master/disaster";
+import type { AreaSortBy } from "@/services/master/province";
+import { useAreaNamesStore } from "@/stores/area-names";
 
 export const useDistrictStore = defineStore("district", () => {
-  const all = ref<DistrictItem[]>([]);
+  const items = ref<DistrictItem[]>([]);
+  const total = ref(0);
   const loading = ref(false);
   const loadError = ref<string>();
 
-  // Every regency, for the filter/form dropdowns and the region column.
-  const regencies = ref<RegencyItem[]>([]);
-
   const page = ref(1);
   const limit = ref(10);
+  const sortBy = ref<AreaSortBy>();
+  const sortOrder = ref<SortOrder>("asc");
 
-  // Empty provinceId/regencyId list every district.
+  // Empty provinceId/regencyId do not filter.
   const appliedFilters = reactive({
     provinceId: "",
     regencyId: "",
-    id: "",
-    name: "",
+    search: "",
   });
-
-  // The API has no paging or search, so both are applied here.
-  // It has no province filter either; BPS district IDs start with the province ID.
-  const filtered = computed(() => {
-    const name = appliedFilters.name.toLowerCase();
-    const prefix = appliedFilters.provinceId
-      ? `${appliedFilters.provinceId}.`
-      : "";
-    return all.value.filter(
-      (item) =>
-        item.id.startsWith(prefix) &&
-        item.id.includes(appliedFilters.id) &&
-        item.name.toLowerCase().includes(name),
-    );
-  });
-  const total = computed(() => filtered.value.length);
-  const items = computed(() =>
-    filtered.value.slice(
-      (page.value - 1) * limit.value,
-      page.value * limit.value,
-    ),
-  );
-
-  async function loadRegencies() {
-    if (regencies.value.length > 0) return;
-    try {
-      regencies.value = await fetchRegencyList();
-    } catch {
-      regencies.value = [];
-    }
-  }
 
   // Only the latest request may update the table.
   let loadId = 0;
@@ -70,17 +40,26 @@ export const useDistrictStore = defineStore("district", () => {
     loading.value = true;
     loadError.value = undefined;
     try {
-      const result = await fetchDistrictList(
-        appliedFilters.regencyId || undefined,
-      );
+      const result = await fetchDistrictPage({
+        provinceId: appliedFilters.provinceId || undefined,
+        regencyId: appliedFilters.regencyId || undefined,
+        search: appliedFilters.search || undefined,
+        sortBy: sortBy.value,
+        sortOrder: sortBy.value ? sortOrder.value : undefined,
+        page: page.value,
+        limit: limit.value,
+      });
 
       if (id !== loadId) return;
-      all.value = result;
-      // Deleting the last row of a page can leave it empty; step back.
-      const lastPage = Math.max(1, Math.ceil(total.value / limit.value));
-      if (page.value > lastPage) {
-        page.value = lastPage;
+      items.value = result.items;
+      total.value = result.total;
+      // Deleting the last row of a page can leave it empty; step back one page.
+      if (items.value.length === 0 && page.value > 1) {
+        page.value -= 1;
       }
+      useAreaNamesStore().ensureRegencies(
+        result.items.map((i) => i.regencyId),
+      );
     } catch (error) {
       if (id === loadId) {
         loadError.value =
@@ -102,36 +81,43 @@ export const useDistrictStore = defineStore("district", () => {
 
   async function updateItem(id: string, payload: UpdateDistrictPayload) {
     await updateDistrict(id, payload);
+    useAreaNamesStore().forgetDistrict(id);
     await fetchDistrictsList();
   }
 
   async function deleteItem(id: string) {
     await deleteDistrict(id);
+    useAreaNamesStore().forgetDistrict(id);
     await fetchDistrictsList();
   }
 
   function applyFilters(filters: {
     provinceId: string;
     regencyId: string;
-    id: string;
-    name: string;
+    search: string;
   }) {
-    // Rows of the previous regency must not stay visible while the new list loads.
-    if (filters.regencyId !== appliedFilters.regencyId) all.value = [];
     appliedFilters.provinceId = filters.provinceId;
     appliedFilters.regencyId = filters.regencyId;
-    appliedFilters.id = filters.id.trim();
-    appliedFilters.name = filters.name.trim();
-    page.value = 1;
-    fetchDistrictsList();
+    appliedFilters.search = filters.search.trim();
+
+    if (page.value !== 1) {
+      page.value = 1;
+    } else {
+      fetchDistrictsList();
+    }
   }
 
   function resetFilters() {
-    applyFilters({ provinceId: "", regencyId: "", id: "", name: "" });
+    applyFilters({ provinceId: "", regencyId: "", search: "" });
   }
 
-  watch(limit, () => {
-    page.value = 1;
+  watch(page, fetchDistrictsList);
+  watch([limit, sortBy, sortOrder], () => {
+    if (page.value !== 1) {
+      page.value = 1;
+    } else {
+      fetchDistrictsList();
+    }
   });
 
   return {
@@ -139,11 +125,11 @@ export const useDistrictStore = defineStore("district", () => {
     total,
     loading,
     loadError,
-    regencies,
     page,
     limit,
+    sortBy,
+    sortOrder,
     appliedFilters,
-    loadRegencies,
     fetchDistrictsList,
     createItem,
     updateItem,
