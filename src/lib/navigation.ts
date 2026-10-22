@@ -39,7 +39,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     administratorOnly: true,
     children: [
       { label: "Bencana", to: "/master/bencana" },
-      { label: "Master A", to: "/master/a" },
+      { label: "Provinsi", to: "/master/provinsi" },
       { label: "Master B", to: "/master/b" },
     ],
   },
