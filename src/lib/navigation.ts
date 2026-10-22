@@ -39,8 +39,10 @@ export const NAV_ITEMS: readonly NavItem[] = [
     administratorOnly: true,
     children: [
       { label: "Bencana", to: "/master/bencana" },
-      { label: "Master A", to: "/master/a" },
-      { label: "Master B", to: "/master/b" },
+      { label: "Provinsi", to: "/master/provinsi" },
+      { label: "Kabupaten/Kota", to: "/master/kabupaten-kota" },
+      { label: "Kecamatan", to: "/master/kecamatan" },
+      { label: "Desa/Kelurahan", to: "/master/desa" },
     ],
   },
   {

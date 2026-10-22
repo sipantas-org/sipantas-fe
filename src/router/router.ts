@@ -74,22 +74,42 @@ const router = createRouter({
         },
 
         {
-          path: "master/a",
-          name: "master-a",
-          component: () => import("@/views/PlaceholderView.vue"),
+          path: "master/provinsi",
+          name: "master-provinsi",
+          component: () => import("@/views/master-data/ProvinceView.vue"),
           meta: {
-            title: "Master A",
+            title: "Provinsi",
             roles: ["admin"],
             administratorOnly: true,
           },
         },
 
         {
-          path: "master/b",
-          name: "master-b",
-          component: () => import("@/views/PlaceholderView.vue"),
+          path: "master/kabupaten-kota",
+          name: "master-kabupaten-kota",
+          component: () => import("@/views/master-data/RegencyView.vue"),
           meta: {
-            title: "Master B",
+            title: "Kabupaten/Kota",
+            roles: ["admin"],
+            administratorOnly: true,
+          },
+        },
+        {
+          path: "master/kecamatan",
+          name: "master-kecamatan",
+          component: () => import("@/views/master-data/DistrictView.vue"),
+          meta: {
+            title: "Kecamatan",
+            roles: ["admin"],
+            administratorOnly: true,
+          },
+        },
+        {
+          path: "master/desa",
+          name: "master-desa",
+          component: () => import("@/views/master-data/VillageView.vue"),
+          meta: {
+            title: "Desa/Kelurahan",
             roles: ["admin"],
             administratorOnly: true,
           },

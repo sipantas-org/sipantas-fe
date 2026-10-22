@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RiFilterLine, RiRestartLine } from "@remixicon/vue";
+import ComboboxSelect from "@/components/ComboboxSelect.vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { ComboLoader, ComboResolver } from "@/lib/combobox";
 
 export interface FilterOption {
   label: string;
@@ -18,10 +20,17 @@ export interface FilterOption {
 export interface FilterField {
   key: string;
   label: string;
-  type: "text" | "select" | "month";
+  type: "text" | "select" | "month" | "combobox";
   placeholder?: string;
   options?: FilterOption[];
   class?: string;
+  // combobox only: options are loaded page by page and searched on the server.
+  load?: ComboLoader;
+  resolve?: ComboResolver;
+  allLabel?: string;
+  reloadKey?: string | number;
+  disabled?: boolean;
+  onChange?: (value: string) => void;
 }
 
 withDefaults(
@@ -90,6 +99,19 @@ const model = defineModel<Record<string, any>>({ required: true });
             </SelectItem>
           </SelectContent>
         </Select>
+
+        <ComboboxSelect
+          v-else-if="field.type === 'combobox' && field.load"
+          :id="`filter-${field.key}`"
+          v-model="model[field.key]"
+          :load="field.load"
+          :resolve="field.resolve"
+          :placeholder="field.placeholder"
+          :all-label="field.allLabel"
+          :reload-key="field.reloadKey"
+          :disabled="field.disabled"
+          @change="field.onChange?.($event)"
+        />
       </div>
     </div>
 
