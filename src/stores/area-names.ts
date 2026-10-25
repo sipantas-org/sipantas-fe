@@ -3,7 +3,7 @@ import { reactive } from "vue";
 import { fetchDistrict, type DistrictItem } from "@/services/master/district";
 import { fetchRegency, type RegencyItem } from "@/services/master/regency";
 
-// Names of the regencies/districts shown in table rows, looked up by ID and cached.
+// Regencies/districts looked up by ID and cached, to prefill the parents of an edit form.
 export const useAreaNamesStore = defineStore("area-names", () => {
   const regencies = reactive<Record<string, RegencyItem>>({});
   const districts = reactive<Record<string, DistrictItem>>({});

@@ -17,10 +17,13 @@ export interface VillageItem {
   id: string;
   districtId: string;
   name: string;
+  // Parent names, present in list responses only.
+  districtName?: string | null;
+  regencyName?: string | null;
 }
 
 // IDs are BPS codes ("31.71.01.1001"). The backend leaves trailing spaces in some names.
-export type CreateVillagePayload = VillageItem;
+export type CreateVillagePayload = Pick<VillageItem, "id" | "districtId" | "name">;
 // PATCH only renames: the ID and the parent cannot be changed (UpdateXDto has just `name`).
 export type UpdateVillagePayload = Pick<VillageItem, "name">;
 

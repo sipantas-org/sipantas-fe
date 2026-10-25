@@ -56,7 +56,7 @@ const {
   appliedFilters,
 } = storeToRefs(villageStore);
 
-// District and regency names for the table rows are looked up per row.
+// Parent lookups for the edit form (the list rows carry their own parent names).
 const names = useAreaNamesStore();
 
 const filterValues = reactive({
@@ -122,10 +122,6 @@ const columns: Column<VillageItem>[] = [
   { key: "region", label: "Wilayah" },
   { key: "actions", label: "", align: "right", headerClass: "w-14" },
 ];
-
-function regencyOfDistrict(districtId: string) {
-  return names.regencies[names.districts[districtId]?.regencyId ?? ""];
-}
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : fallback;
@@ -332,9 +328,9 @@ async function submitDelete() {
       </template>
 
       <template #cell-region="{ item }">
-        <div>{{ names.districts[item.districtId]?.name ?? item.districtId }}</div>
+        <div>{{ item.districtName ?? item.districtId }}</div>
         <div class="text-muted-foreground text-xs">
-          {{ regencyOfDistrict(item.districtId)?.name ?? "" }}
+          {{ item.regencyName ?? "" }}
         </div>
       </template>
 

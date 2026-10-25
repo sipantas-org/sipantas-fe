@@ -37,7 +37,6 @@ import {
   regencyResolver,
 } from "@/lib/area-options";
 import { ApiError } from "@/lib/http";
-import { useAreaStore } from "@/stores/area";
 import { useAreaNamesStore } from "@/stores/area-names";
 import { useDistrictStore } from "@/stores/district";
 import type { DistrictItem } from "@/services/master/district";
@@ -55,9 +54,7 @@ const {
   appliedFilters,
 } = storeToRefs(districtStore);
 
-// Province names for the table rows; regency names are looked up per row.
-const areaStore = useAreaStore();
-const { provinces } = storeToRefs(areaStore);
+// Parent lookups for the edit form (the list rows carry their own parent names).
 const names = useAreaNamesStore();
 
 const filterValues = reactive({
@@ -107,16 +104,11 @@ const columns: Column<DistrictItem>[] = [
   { key: "actions", label: "", align: "right", headerClass: "w-14" },
 ];
 
-function provinceName(id?: string) {
-  return provinces.value.find((p) => p.id === id)?.name ?? id ?? "";
-}
-
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : fallback;
 }
 
 onMounted(() => {
-  areaStore.loadProvinces();
   districtStore.fetchDistrictsList();
 });
 
@@ -299,9 +291,9 @@ async function submitDelete() {
       </template>
 
       <template #cell-region="{ item }">
-        <div>{{ names.regencies[item.regencyId]?.name ?? item.regencyId }}</div>
+        <div>{{ item.regencyName ?? item.regencyId }}</div>
         <div class="text-muted-foreground text-xs">
-          {{ provinceName(names.regencies[item.regencyId]?.provinceId) }}
+          {{ item.provinceName ?? "" }}
         </div>
       </template>
 
