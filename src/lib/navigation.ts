@@ -43,6 +43,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
       { label: "Kabupaten/Kota", to: "/master/kabupaten-kota" },
       { label: "Kecamatan", to: "/master/kecamatan" },
       { label: "Desa/Kelurahan", to: "/master/desa" },
+      { label: "Sektor", to: "/master/sektor" },
+      { label: "Assessmen Komponen Rumah", to: "/master/komponen-rumah" },
     ],
   },
   {

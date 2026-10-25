@@ -1,4 +1,5 @@
-import { request } from "@/lib/http";
+import { listUrl, request, toPage } from "@/lib/http";
+import type { SortOrder } from "@/services/master/disaster";
 
 export type HousingPartStatus = "Active" | "Inactive";
 
@@ -19,14 +20,27 @@ export interface CreateHousingPartPayload {
 
 export type UpdateHousingPartPayload = Partial<CreateHousingPartPayload>;
 
-export async function fetchHousingParts(): Promise<HousingPartItem[]> {
-  const result = await request<any>("/api/housing-assessment-part");
+export type HousingPartSortBy = "housingAssessmentPartId" | "partName";
 
-  return (
-    [result?.data?.data, result?.data, result?.items, result].find(
-      Array.isArray,
-    ) ?? []
+export interface HousingPartQuery extends Record<string, unknown> {
+  page: number;
+  limit: number;
+  partName?: string;
+  partStatus?: HousingPartStatus;
+  sortBy?: HousingPartSortBy;
+  sortOrder?: SortOrder;
+}
+
+export async function fetchHousingPartPage(query: HousingPartQuery) {
+  return toPage<HousingPartItem>(
+    await request<unknown>(listUrl("/api/housing-assessment-part", query)),
   );
+}
+
+// Whole list for dropdowns (the API returns 10 rows without a limit).
+export async function fetchHousingParts(): Promise<HousingPartItem[]> {
+  const { items } = await fetchHousingPartPage({ page: 1, limit: 1000 });
+  return items;
 }
 
 export function fetchHousingPart(id: number) {
