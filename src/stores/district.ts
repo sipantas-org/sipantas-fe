@@ -57,9 +57,6 @@ export const useDistrictStore = defineStore("district", () => {
       if (items.value.length === 0 && page.value > 1) {
         page.value -= 1;
       }
-      useAreaNamesStore().ensureRegencies(
-        result.items.map((i) => i.regencyId),
-      );
     } catch (error) {
       if (id === loadId) {
         loadError.value =

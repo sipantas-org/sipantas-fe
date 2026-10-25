@@ -12,7 +12,6 @@ import {
   type UpdateVillagePayload,
   type VillageItem,
 } from "@/services/master/village";
-import { useAreaNamesStore } from "@/stores/area-names";
 
 export const useVillageStore = defineStore("village", () => {
   const items = ref<VillageItem[]>([]);
@@ -59,9 +58,6 @@ export const useVillageStore = defineStore("village", () => {
       if (items.value.length === 0 && page.value > 1) {
         page.value -= 1;
       }
-      useAreaNamesStore().ensureDistricts(
-        result.items.map((i) => i.districtId),
-      );
     } catch (error) {
       if (id === loadId) {
         loadError.value =
