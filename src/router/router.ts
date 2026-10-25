@@ -115,6 +115,16 @@ const router = createRouter({
           },
         },
         {
+          path: "master/komponen-rumah",
+          name: "master-komponen-rumah",
+          component: () => import("@/views/master-data/HousingPartView.vue"),
+          meta: {
+            title: "Assessmen Komponen Rumah",
+            roles: ["admin"],
+            administratorOnly: true,
+          },
+        },
+        {
           path: "master/sektor",
           name: "master-sektor",
           component: () => import("@/views/master-data/SectorView.vue"),
