@@ -115,6 +115,16 @@ const router = createRouter({
           },
         },
         {
+          path: "master/sektor",
+          name: "master-sektor",
+          component: () => import("@/views/master-data/SectorView.vue"),
+          meta: {
+            title: "Sektor",
+            roles: ["admin"],
+            administratorOnly: true,
+          },
+        },
+        {
           path: "user/surveyors",
           name: "surveyors",
           component: () => import("@/views/user/SurveyorsView.vue"),
