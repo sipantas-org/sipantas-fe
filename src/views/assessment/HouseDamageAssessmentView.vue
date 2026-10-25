@@ -80,14 +80,6 @@ const { items, pagination, total, loading, loadError } =
 const housingParts = ref<HousingPartItem[]>([]);
 const loadingParts = ref(false);
 
-const housingPartMap = computed(() => {
-  const map = new Map<number, string>();
-  for (const part of housingParts.value) {
-    map.set(part.housingAssessmentPartId, part.partName);
-  }
-  return map;
-});
-
 // Pagination & Sorting state
 const page = ref(1);
 const limit = ref(10);
