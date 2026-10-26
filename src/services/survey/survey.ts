@@ -155,6 +155,16 @@ export interface CreateSurveyPayload {
 
 export type UpdateSurveyPayload = Partial<CreateSurveyPayload>;
 
+export interface UpdateSurveyStatusPayload {
+  surveyStatus: SurveyStatus | string;
+  sourceOfBudgetting?: string | null;
+}
+
+export interface UpdateSurveyComplainPayload {
+  complainDescription: string;
+  imagesPath?: string[];
+}
+
 export async function fetchSurveys(query: SurveyQuery): Promise<SurveyPage> {
   const result = await request<any>(listUrl("/api/surveys", query));
 
@@ -195,4 +205,24 @@ export function updateSurvey(id: number, payload: UpdateSurveyPayload) {
 
 export function deleteSurvey(id: number) {
   return request<unknown>(`/api/surveys/${id}`, { method: "DELETE" });
+}
+
+export function updateSurveyStatus(
+  id: number,
+  payload: UpdateSurveyStatusPayload,
+) {
+  return request<SurveyItem>(`/api/surveys/${id}/status`, {
+    method: "PATCH",
+    body: payload,
+  });
+}
+
+export function complainSurvey(
+  id: number,
+  payload: UpdateSurveyComplainPayload,
+) {
+  return request<SurveyItem>(`/api/surveys/${id}/complain`, {
+    method: "PATCH",
+    body: payload,
+  });
 }

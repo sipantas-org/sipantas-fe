@@ -2,18 +2,22 @@ import { defineStore } from "pinia";
 import { reactive, ref, watch } from "vue";
 import { ApiError } from "@/lib/http";
 import {
+  complainSurvey,
   createSurvey,
   deleteSurvey,
   fetchSurvey as fetchSurveyApi,
   fetchSurveys,
   updateSurvey,
+  updateSurveyStatus,
   type CreateSurveyPayload,
   type DamageLevel,
   type PaginationMeta,
   type SortOrder,
   type SurveyItem,
   type SurveyStatus,
+  type UpdateSurveyComplainPayload,
   type UpdateSurveyPayload,
+  type UpdateSurveyStatusPayload,
 } from "@/services/survey/survey";
 
 export const useSurveyStore = defineStore("survey", () => {
@@ -106,6 +110,16 @@ export const useSurveyStore = defineStore("survey", () => {
     await fetchSurveysList();
   }
 
+  async function updateStatus(id: number, payload: UpdateSurveyStatusPayload) {
+    await updateSurveyStatus(id, payload);
+    await fetchSurveysList();
+  }
+
+  async function complain(id: number, payload: UpdateSurveyComplainPayload) {
+    await complainSurvey(id, payload);
+    await fetchSurveysList();
+  }
+
   function applyFilters(filters: {
     surveyStatus: SurveyStatus | "all";
     damageLevel?: DamageLevel | "all";
@@ -173,6 +187,8 @@ export const useSurveyStore = defineStore("survey", () => {
     createItem,
     updateItem,
     deleteItem,
+    updateStatus,
+    complain,
     applyFilters,
     resetFilters,
   };
