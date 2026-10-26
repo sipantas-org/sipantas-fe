@@ -61,7 +61,7 @@ const adminStore = useAdminStore();
 const { items, total, loading, loadError, page, limit, appliedFilters } =
   storeToRefs(adminStore);
 
-const filterValues = reactive({
+let filterValues = reactive({
   status: appliedFilters.value.status as AdminStatus | "all",
 });
 
@@ -82,7 +82,11 @@ const columns: Column<AdminUser>[] = [
   { key: "admin", label: "Admin" },
   { key: "contact", label: "Kontak" },
   { key: "status", label: "Status" },
-  { key: "lastLogin", label: "Terakhir masuk", cellClass: "text-muted-foreground" },
+  {
+    key: "lastLogin",
+    label: "Terakhir masuk",
+    cellClass: "text-muted-foreground",
+  },
   { key: "actions", label: "", align: "right", headerClass: "w-14" },
 ];
 

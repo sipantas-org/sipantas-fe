@@ -59,7 +59,7 @@ const {
 // Parent lookups for the edit form (the list rows carry their own parent names).
 const names = useAreaNamesStore();
 
-const filterValues = reactive({
+let filterValues = reactive({
   provinceId: appliedFilters.value.provinceId || "all",
   regencyId: appliedFilters.value.regencyId || "all",
   districtId: appliedFilters.value.districtId || "all",

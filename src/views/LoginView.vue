@@ -1,77 +1,96 @@
 <script setup lang="ts">
-import { RiLoader4Line, RiMapPinUserLine, RiShieldUserLine, RiTimeLine } from '@remixicon/vue'
-import { computed, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import AuthShell from '@/components/AuthShell.vue'
-import PasswordInput from '@/components/PasswordInput.vue'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { ApiError } from '@/lib/http'
-import { isRole } from '@/lib/theme'
-import { useAuthStore } from '@/stores/auth'
-import type { Role } from '@/lib/theme'
+import {
+  RiLoader4Line,
+  RiMapPinUserLine,
+  RiShieldUserLine,
+  RiTimeLine,
+} from "@remixicon/vue";
+import { computed, reactive, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import AuthShell from "@/components/AuthShell.vue";
+import PasswordInput from "@/components/PasswordInput.vue";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { ApiError } from "@/lib/http";
+import { isRole } from "@/lib/theme";
+import { useAuthStore } from "@/stores/auth";
+import type { Role } from "@/lib/theme";
 
 const content = {
   admin: {
-    title: 'Masuk sebagai Admin',
+    title: "Masuk sebagai Admin",
     icon: RiShieldUserLine,
-    other: { role: 'surveyor', label: 'Masuk sebagai Surveyor' },
+    other: { role: "surveyor", label: "Masuk sebagai Surveyor" },
   },
   surveyor: {
-    title: 'Masuk sebagai Surveyor',
+    title: "Masuk sebagai Surveyor",
     icon: RiMapPinUserLine,
-    other: { role: 'admin', label: 'Masuk sebagai Admin' },
+    other: { role: "admin", label: "Masuk sebagai Admin" },
   },
-} as const
+} as const;
 
-const route = useRoute()
-const router = useRouter()
-const auth = useAuthStore()
+const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
 
 const role = computed<Role>(() => {
-  const param = route.params.role
-  return typeof param === 'string' && isRole(param) ? param : 'admin'
-})
-const page = computed(() => content[role.value])
+  const param = route.params.role;
+  return typeof param === "string" && isRole(param) ? param : "admin";
+});
+const page = computed(() => content[role.value]);
 
 // Set by the 401 handler in main.ts after the session expired.
-const sessionExpired = computed(() => route.query.expired === '1')
+const sessionExpired = computed(() => route.query.expired === "1");
 
 const form = reactive({
-  email: "administrator.sipantas@gmail.com",
+  email: "surveyor.sipantas@gmail.com",
   password: "password.sipantas123",
 });
-const errors = reactive<{ email?: string, password?: string, form?: string }>({})
-const loading = ref(false)
-const success = ref(false)
+const errors = reactive<{ email?: string; password?: string; form?: string }>(
+  {},
+);
+const loading = ref(false);
+const success = ref(false);
 
 function validate() {
-  errors.email = form.email.trim() === ''
-    ? 'Email wajib diisi.'
-    : /^\S+@\S+\.\S+$/.test(form.email.trim()) ? undefined : 'Format email tidak valid.'
-  errors.password = form.password === '' ? 'Kata sandi wajib diisi.' : undefined
-  errors.form = undefined
-  success.value = false
-  return !errors.email && !errors.password
+  errors.email =
+    form.email.trim() === ""
+      ? "Email wajib diisi."
+      : /^\S+@\S+\.\S+$/.test(form.email.trim())
+        ? undefined
+        : "Format email tidak valid.";
+  errors.password =
+    form.password === "" ? "Kata sandi wajib diisi." : undefined;
+  errors.form = undefined;
+  success.value = false;
+  return !errors.email && !errors.password;
 }
 
 async function onSubmit() {
-  if (!validate())
-    return
+  if (!validate()) return;
 
-  loading.value = true
+  loading.value = true;
   try {
-    await auth.login(role.value, { email: form.email.trim(), password: form.password })
-    success.value = true
-    await router.push({ name: 'dashboard' })
-  }
-  catch (error) {
-    errors.form = error instanceof ApiError ? error.message : 'Gagal masuk. Silakan coba lagi.'
-  }
-  finally {
-    loading.value = false
+    await auth.login(role.value, {
+      email: form.email.trim(),
+      password: form.password,
+    });
+    success.value = true;
+    await router.push({ name: "dashboard" });
+  } catch (error) {
+    errors.form =
+      error instanceof ApiError
+        ? error.message
+        : "Gagal masuk. Silakan coba lagi.";
+  } finally {
+    loading.value = false;
   }
 }
 </script>
@@ -88,9 +107,7 @@ async function onSubmit() {
     <form novalidate @submit.prevent="onSubmit">
       <FieldGroup>
         <Field :data-invalid="!!errors.email">
-          <FieldLabel for="email" class="text-sm">
-            Email
-          </FieldLabel>
+          <FieldLabel for="email" class="text-sm"> Email </FieldLabel>
           <Input
             id="email"
             v-model="form.email"
@@ -105,9 +122,7 @@ async function onSubmit() {
         </Field>
 
         <Field :data-invalid="!!errors.password">
-          <FieldLabel for="password" class="text-sm">
-            Kata sandi
-          </FieldLabel>
+          <FieldLabel for="password" class="text-sm"> Kata sandi </FieldLabel>
           <PasswordInput
             id="password"
             v-model="form.password"
@@ -123,9 +138,14 @@ async function onSubmit() {
           Berhasil masuk.
         </p>
 
-        <Button type="submit" size="lg" class="h-10 w-full text-sm" :disabled="loading">
+        <Button
+          type="submit"
+          size="lg"
+          class="h-10 w-full text-sm"
+          :disabled="loading"
+        >
           <RiLoader4Line v-if="loading" class="animate-spin" />
-          {{ loading ? 'Memproses...' : 'Masuk' }}
+          {{ loading ? "Memproses..." : "Masuk" }}
         </Button>
       </FieldGroup>
     </form>
@@ -133,7 +153,10 @@ async function onSubmit() {
     <template #footer>
       <p v-if="role === 'surveyor'">
         Belum punya akun?
-        <RouterLink :to="{ name: 'register' }" class="text-primary font-medium underline-offset-4 hover:underline">
+        <RouterLink
+          :to="{ name: 'register' }"
+          class="text-primary font-medium underline-offset-4 hover:underline"
+        >
           Daftar
         </RouterLink>
       </p>

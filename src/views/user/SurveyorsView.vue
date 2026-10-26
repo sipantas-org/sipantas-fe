@@ -54,7 +54,7 @@ const surveyorStore = useSurveyorStore();
 const { items, total, loading, loadError, page, limit, appliedFilters } =
   storeToRefs(surveyorStore);
 
-const filterValues = reactive({
+let filterValues = reactive({
   status: appliedFilters.value.status as SurveyorStatus | "all",
 });
 
@@ -76,7 +76,11 @@ const columns: Column<SurveyorListItem>[] = [
   { key: "contact", label: "Kontak" },
   { key: "region", label: "Wilayah" },
   { key: "status", label: "Status" },
-  { key: "lastLogin", label: "Terakhir masuk", cellClass: "text-muted-foreground" },
+  {
+    key: "lastLogin",
+    label: "Terakhir masuk",
+    cellClass: "text-muted-foreground",
+  },
   { key: "actions", label: "", align: "right", headerClass: "w-14" },
 ];
 

@@ -56,10 +56,18 @@ const STATUSES = Object.keys(STATUS_LABEL) as SectorStatus[];
 const NO_PARENT = "none";
 
 const sectorStore = useSectorStore();
-const { items, total, loading, loadError, parents, page, limit, appliedFilters } =
-  storeToRefs(sectorStore);
+const {
+  items,
+  total,
+  loading,
+  loadError,
+  parents,
+  page,
+  limit,
+  appliedFilters,
+} = storeToRefs(sectorStore);
 
-const filterValues = reactive({
+let filterValues = reactive({
   status: appliedFilters.value.status || "all",
   search: appliedFilters.value.search,
 });
@@ -111,7 +119,9 @@ onMounted(() => {
 function applyFilters() {
   sectorStore.applyFilters({
     status:
-      filterValues.status === "all" ? "" : (filterValues.status as SectorStatus),
+      filterValues.status === "all"
+        ? ""
+        : (filterValues.status as SectorStatus),
     search: filterValues.search,
   });
 }
@@ -372,7 +382,9 @@ async function submitDelete() {
               <SelectValue placeholder="Pilih sektor induk..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem :value="NO_PARENT">Tanpa induk (sektor utama)</SelectItem>
+              <SelectItem :value="NO_PARENT"
+                >Tanpa induk (sektor utama)</SelectItem
+              >
               <SelectItem
                 v-for="parent in parentOptions"
                 :key="parent.sectorId"
@@ -386,7 +398,7 @@ async function submitDelete() {
             {{
               hasChildren
                 ? "Sektor ini memiliki sub-sektor, jadi tidak dapat dijadikan sub-sektor."
-                : "Pilih \"Tanpa induk\" untuk membuat sektor utama."
+                : 'Pilih "Tanpa induk" untuk membuat sektor utama.'
             }}
           </FieldDescription>
         </Field>

@@ -24,6 +24,7 @@ export interface HouseDamageAssessmentItem {
   id: number;
   idHousingAssessmentPart: number;
   housingAssessmentPartName: string;
+  surveyOrderNumber: number;
   surveyDamageQuestion: string;
   surveyScoring: SurveyScoringItem[];
   status?: HouseDamageAssessmentStatus;

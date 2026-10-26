@@ -37,7 +37,7 @@ const provinceStore = useProvinceStore();
 const { items, total, loading, loadError, page, limit, sortBy, sortOrder } =
   storeToRefs(provinceStore);
 
-const filterValues = reactive({
+let filterValues = reactive({
   search: provinceStore.appliedFilters.search,
 });
 

@@ -3,6 +3,9 @@ const BASE_URL = (
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000"
 ).replace(/\/$/, "");
 
+const BASIC_AUTH_USER = import.meta.env.VITE_BASIC_AUTH_USER ?? "";
+const BASIC_AUTH_PASS = import.meta.env.VITE_BASIC_AUTH_PASS ?? "";
+
 // status 0 means the request never reached the server.
 export class ApiError extends Error {
   status: number;
@@ -25,6 +28,40 @@ let unauthorizedHandler: () => void = () => {};
 
 export function setUnauthorizedHandler(handler: () => void) {
   unauthorizedHandler = handler;
+}
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface PaginatedApiResponse<T> {
+  data: T[];
+  pagination: PaginationMeta;
+}
+
+export interface PaginatedPage<T> {
+  items: T[];
+  total: number;
+  pagination: PaginationMeta;
+}
+
+export function createDefaultPagination(
+  total: number,
+  query: { page: number; limit: number },
+): PaginationMeta {
+  return {
+    total,
+    page: query.page,
+    limit: query.limit,
+    totalPages: Math.ceil(total / query.limit) || 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  };
 }
 
 // Shape of a paginated list, after unwrap().
@@ -85,16 +122,30 @@ export async function request<T>(
   { method = "GET", body, token, logoutOn401 = true }: RequestOptions = {},
 ): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const isFormData =
+    typeof FormData !== "undefined" && body instanceof FormData;
+  if (body !== undefined && !isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const bearer = token === undefined ? tokenGetter() : token;
-  if (bearer) headers.Authorization = `Bearer ${bearer}`;
+  if (bearer) {
+    headers.Authorization = `Bearer ${bearer}`;
+  } else {
+    headers.Authorization = `Basic ${btoa(`${BASIC_AUTH_USER}:${BASIC_AUTH_PASS}`)}`;
+  }
 
   let response: Response;
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body:
+        body === undefined
+          ? undefined
+          : isFormData
+            ? body
+            : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, "Tidak dapat terhubung ke server.");

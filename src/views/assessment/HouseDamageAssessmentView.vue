@@ -87,7 +87,7 @@ const sortBy = ref<string>();
 const sortOrder = ref<SortOrder>("asc");
 
 // Filters
-const filterValues = reactive({
+let filterValues = reactive({
   status: "all" as HouseDamageAssessmentStatus | "all",
   surveyDamageQuestion: "",
   idHousingAssessmentPart: "all" as string,

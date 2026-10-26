@@ -151,6 +151,33 @@ const router = createRouter({
           },
         },
         {
+          path: "survey",
+          name: "survey-list",
+          component: () => import("@/views/survey/SurveyView.vue"),
+          meta: {
+            title: "Survey",
+            roles: ["surveyor"],
+          },
+        },
+        {
+          path: "/survey/create",
+          name: "survey-create",
+          component: () => import("@/views/survey/SurveyForm.vue"),
+          props: { isEdit: false },
+        },
+        {
+          path: "/survey/:id/edit",
+          name: "survey-edit",
+          component: () => import("@/views/survey/SurveyForm.vue"),
+          props: (route) => ({ isEdit: true, id: route.params.id }),
+        },
+        {
+          path: "/survey/:id",
+          name: "survey-detail",
+          component: () => import("@/views/survey/SurveyForm.vue"),
+          props: (route) => ({ isEdit: false, id: route.params.id }),
+        },
+        {
           path: "profile",
           name: "profile",
           component: () => import("@/views/ProfileView.vue"),
