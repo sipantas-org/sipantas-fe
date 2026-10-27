@@ -100,7 +100,7 @@ const { provinces, cities, loadingCities } = storeToRefs(areaStore);
 const openProvince = ref(false);
 const openRegency = ref(false);
 
-const filterValues = reactive({
+let filterValues = reactive({
   status: "all" as DisasterStatus | "all",
   disasterCode: "",
   disasterName: "",
@@ -364,7 +364,6 @@ const detailLoading = ref(false);
 const detailItem = ref<DisasterItem | null>(null);
 
 async function openDetail(item: DisasterItem) {
-  console.log(item);
   const id = Number(item.disasterId ?? (item as any).id);
   detailItem.value = item;
   detailOpen.value = true;

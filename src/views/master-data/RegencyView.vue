@@ -53,7 +53,7 @@ const {
 const areaStore = useAreaStore();
 const { provinces } = storeToRefs(areaStore);
 
-const filterValues = reactive({
+let filterValues = reactive({
   provinceId: appliedFilters.value.provinceId || "all",
   search: appliedFilters.value.search,
 });

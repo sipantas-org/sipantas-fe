@@ -37,6 +37,13 @@ export async function fetchVillagePage(query: VillageQuery) {
   };
 }
 
+export async function fetchVillage(id: string): Promise<VillageItem> {
+  const item = await request<VillageItem>(
+    `/api/villages/${encodeURIComponent(id)}`,
+  );
+  return { id: item.id, districtId: item.districtId, name: item.name.trim() };
+}
+
 export function createVillage(payload: CreateVillagePayload) {
   return request<VillageItem>("/api/villages", {
     method: "POST",

@@ -57,7 +57,7 @@ const {
 // Parent lookups for the edit form (the list rows carry their own parent names).
 const names = useAreaNamesStore();
 
-const filterValues = reactive({
+let filterValues = reactive({
   provinceId: appliedFilters.value.provinceId || "all",
   regencyId: appliedFilters.value.regencyId || "all",
   search: appliedFilters.value.search,
@@ -147,8 +147,7 @@ async function openCreate() {
   if (regencyId) await names.ensureRegencies([regencyId]);
   Object.assign(form, {
     provinceId:
-      names.regencies[regencyId]?.provinceId ??
-      appliedFilters.value.provinceId,
+      names.regencies[regencyId]?.provinceId ?? appliedFilters.value.provinceId,
     regencyId,
     id: "",
     name: "",

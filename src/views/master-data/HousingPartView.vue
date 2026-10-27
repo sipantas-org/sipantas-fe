@@ -63,7 +63,7 @@ const {
   appliedFilters,
 } = storeToRefs(partStore);
 
-const filterValues = reactive({
+let filterValues = reactive({
   partStatus: appliedFilters.value.partStatus || "all",
   partName: appliedFilters.value.partName,
 });
@@ -153,7 +153,9 @@ function openEdit(item: HousingPartItem) {
 
 function validate() {
   errors.partName =
-    form.partName.trim() === "" ? "Nama komponen rumah wajib diisi." : undefined;
+    form.partName.trim() === ""
+      ? "Nama komponen rumah wajib diisi."
+      : undefined;
   errors.form = undefined;
 
   return !errors.partName;
@@ -297,7 +299,9 @@ async function submitDelete() {
 
     <FormDialog
       v-model:open="formOpen"
-      :title="editingId ? 'Ubah Data Komponen Rumah' : 'Tambah Data Komponen Rumah'"
+      :title="
+        editingId ? 'Ubah Data Komponen Rumah' : 'Tambah Data Komponen Rumah'
+      "
       description="Lengkapi rincian komponen rumah di bawah ini."
       :submitting="formSubmitting"
       @submit="onSubmitForm"

@@ -2,6 +2,7 @@ import type { ComboLoader, ComboResolver } from "@/lib/combobox";
 import { fetchDistrict, fetchDistrictPage } from "@/services/master/district";
 import { fetchProvince, fetchProvincePage } from "@/services/master/province";
 import { fetchRegency, fetchRegencyPage } from "@/services/master/regency";
+import { fetchVillage, fetchVillagePage } from "@/services/master/village";
 
 // Combobox loaders for the area dropdowns. The server pages and searches by name.
 
@@ -62,4 +63,25 @@ export function districtLoader(regencyId?: string): ComboLoader {
 export const districtResolver: ComboResolver = async (id) => {
   const district = await fetchDistrict(id);
   return { value: district.id, label: district.name };
+};
+
+// An empty districtId lists every village.
+export function villageLoader(districtId?: string): ComboLoader {
+  return async ({ search, page, limit }) => {
+    const result = await fetchVillagePage({
+      districtId: districtId || undefined,
+      search: search || undefined,
+      page,
+      limit,
+    });
+    return {
+      items: result.items.map((v) => ({ value: v.id, label: v.name })),
+      total: result.total,
+    };
+  };
+}
+
+export const villageResolver: ComboResolver = async (id) => {
+  const village = await fetchVillage(id);
+  return { value: village.id, label: village.name };
 };

@@ -1,10 +1,6 @@
 <!-- src/components/ComboboxSelect.vue -->
 <script setup lang="ts">
-import {
-  RiArrowDownSLine,
-  RiLoader4Line,
-  RiSearchLine,
-} from "@remixicon/vue";
+import { RiArrowDownSLine, RiLoader4Line, RiSearchLine } from "@remixicon/vue";
 import { useDebounceFn } from "@vueuse/core";
 import { ListboxFilter } from "reka-ui";
 import { computed, ref, watch } from "vue";
@@ -21,11 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import type {
-  ComboLoader,
-  ComboOption,
-  ComboResolver,
-} from "@/lib/combobox";
+import type { ComboLoader, ComboOption, ComboResolver } from "@/lib/combobox";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
@@ -100,7 +92,8 @@ async function fetchPage(reset: boolean) {
     options.value = reset ? result.items : [...options.value, ...result.items];
     total.value = result.total;
     page.value = next;
-    for (const option of result.items) labels.value[option.value] = option.label;
+    for (const option of result.items)
+      labels.value[option.value] = option.label;
   } catch {
     if (id === requestId) loadFailed.value = true;
   } finally {
@@ -195,7 +188,7 @@ function choose(value: string) {
     </PopoverTrigger>
     <PopoverContent
       align="start"
-      class="w-(--reka-popover-trigger-width) min-w-56 gap-0 p-0"
+      class="z-[1000] w-(--reka-popover-trigger-width) min-w-56 gap-0 p-0"
     >
       <Command :model-value="model">
         <!-- Own filter input instead of CommandInput: Command must not filter on the client, the server does. -->
@@ -240,7 +233,10 @@ function choose(value: string) {
             <RiLoader4Line class="size-4 animate-spin" />
             Memuat...
           </div>
-          <div v-else-if="loadFailed" class="flex flex-col items-center gap-1 py-3">
+          <div
+            v-else-if="loadFailed"
+            class="flex flex-col items-center gap-1 py-3"
+          >
             <span class="text-destructive text-sm">Gagal memuat data.</span>
             <Button
               type="button"
