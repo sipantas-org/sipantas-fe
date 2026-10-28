@@ -51,7 +51,7 @@ export function validateUploadPayload(payload: UploadPayload): void {
  */
 export function uploadFile(
   payload: UploadPayload,
-  uploadUrl = "/api/upload",
+  uploadUrl = "/api/upload-blob",
 ): Promise<UploadResponse> {
   validateUploadPayload(payload);
 
