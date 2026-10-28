@@ -10,6 +10,7 @@ import {
   RiSaveLine,
 } from "@remixicon/vue";
 import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/stores/auth";
 import { useSurveyStore } from "@/stores/survey";
 import { ApiError } from "@/lib/http";
 import type {
@@ -35,11 +36,13 @@ const props = withDefaults(
 );
 
 const router = useRouter();
+const authStore = useAuthStore();
 const surveyStore = useSurveyStore();
 
 // Mode Rules
 const isEditMode = computed(() => props.isEdit && !!props.id);
 const isDetailMode = computed(() => !props.isEdit && !!props.id);
+const isCreateMode = computed(() => !isEditMode.value && !isDetailMode.value);
 
 const currentStep = ref(1);
 const loadingData = ref(false);
@@ -49,7 +52,7 @@ const initialTimestamp = ref(Date.now().toString());
 const surveyDocumentation = ref<DocumentationApiPayload[]>([]);
 
 const steps = [
-  { step: 1, title: "Data Penduduk", desc: "Identitas dan lokasi aset" },
+  { step: 1, title: "Form Data", desc: "Data Bencana dan Penduduk" },
   { step: 2, title: "Kerusakan", desc: "Kondisi fisik & perabotan" },
   { step: 3, title: "Kerugian", desc: "Rincian estimasi nilai kerugian" },
   { step: 4, title: "Dokumentasi", desc: "Upload gambar bukti kerusakan" },
@@ -57,9 +60,9 @@ const steps = [
 
 // Form State
 const form = reactive<CreateSurveyPayload>({
-  disasterId: 1,
-  sectorId: 1,
-  surveyorId: 1,
+  disasterId: "",
+  sectorId: 6,
+  surveyorId: Number((authStore.user as any)?.id),
   surveyStatus: "Pending",
   provinceId: "",
   regencyId: "",
@@ -102,6 +105,9 @@ function validateStep(step: number): boolean {
   resetErrors();
 
   if (step === 1) {
+    if (isCreateMode.value && !form.disasterId) {
+      errors.disasterId = "Bencana wajib dipilih";
+    }
     if (!form.nik?.trim()) errors.nik = "NIK wajib diisi";
     else if (!/^\d{16}$/.test(form.nik.trim()))
       errors.nik = "NIK harus berjumlah 16 digit angka";
@@ -168,7 +174,8 @@ onMounted(async () => {
         Object.assign(form, {
           disasterId: data.disasterId ?? 1,
           sectorId: data.sectorId ?? 1,
-          surveyorId: data.surveyorId ?? 1,
+          surveyorId:
+            (data.surveyorId ?? Number((authStore.user as any)?.id)) || 1,
           surveyStatus: data.surveyStatus ?? "Pending",
           provinceId: data.provinceId ?? "",
           regencyId: data.regencyId ?? "",
@@ -212,7 +219,11 @@ onMounted(async () => {
       loadingData.value = false;
     }
   } else {
-    Object.assign(form, { surveyFolderPath: initialTimestamp });
+    const currentSurveyorId = (authStore.user as any)?.id;
+    Object.assign(form, {
+      surveyFolderPath: initialTimestamp,
+      ...(currentSurveyorId ? { surveyorId: Number(currentSurveyorId) } : {}),
+    });
   }
 });
 
@@ -227,8 +238,12 @@ async function handleSubmit() {
   calculateTotals();
   submitting.value = true;
   try {
+    const currentSurveyorId = (authStore.user as any)?.id;
     const payload = {
       ...form,
+      ...(!isEditMode.value && currentSurveyorId
+        ? { surveyorId: Number(currentSurveyorId) }
+        : {}),
       files: surveyDocumentation.value as any,
     };
 
@@ -273,7 +288,7 @@ const pageTitle = computed(() => {
         </p>
       </div>
       <Button variant="outline" size="sm" @click="goBackToList">
-        <RiArrowLeftLine class="size-4 mr-1" /> Kembali ke Daftar
+        <RiArrowLeftLine class="size-4 mr-1" /> Kembali ke Data Survei
       </Button>
     </div>
 
@@ -338,6 +353,7 @@ const pageTitle = computed(() => {
           :form="form"
           :errors="errors"
           :is-detail-mode="isDetailMode"
+          :is-create-mode="isCreateMode"
         />
 
         <!-- TAB 2: ASESMEN KERUSAKAN RUMAH -->
