@@ -125,7 +125,7 @@ export interface SurveyFileCategoryPayload {
 }
 
 export interface CreateSurveyPayload {
-  disasterId: string;
+  disasterId: number;
   sectorId: number;
   surveyorId?: number;
   surveyStatus?: SurveyStatus | string;
