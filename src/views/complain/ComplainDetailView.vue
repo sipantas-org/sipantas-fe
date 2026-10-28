@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {
   RiArrowLeftLine,
-  RiCheckboxCircleLine,
   RiDownload2Line,
   RiExternalLinkLine,
   RiFileTextLine,
@@ -40,7 +39,6 @@ import { useComplainStore } from "@/stores/complain";
 import type {
   ComplainAction,
   ComplainDetail,
-  ComplainFile,
   ComplainStatus,
   UpdateComplainStatusPayload,
 } from "@/services/complain/complain";

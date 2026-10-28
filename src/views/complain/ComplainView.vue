@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RiEyeLine, RiMoreLine } from "@remixicon/vue";
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
 import DataTable, { type Column } from "@/components/DataTable.vue";
 import DataTableFilter, {
@@ -39,7 +39,7 @@ const ACTION_META: Record<
   Resolved: { label: "Diterima (Resolved)", variant: "default" },
   Rejected: { label: "Ditolak (Rejected)", variant: "destructive" },
 };
-const ListAction = Object.keys(ACTION_META) as ComplainAction[];
+// const ListAction = Object.keys(ACTION_META) as ComplainAction[];
 
 const router = useRouter();
 const complainStore = useComplainStore();

@@ -68,12 +68,12 @@ async function loadDisasterDetail(disasterId: number) {
   }
 }
 
-// Filter hanya bencana yang berstatus "Active"
-const activeDisasters = computed(() => {
-  return disasterStore.items.filter(
-    (item: any) => (item.disasterStatus ?? item.status) === "Active",
-  );
-});
+// // Filter hanya bencana yang berstatus "Active"
+// const activeDisasters = computed(() => {
+//   return disasterStore.items.filter(
+//     (item: any) => (item.disasterStatus ?? item.status) === "Active",
+//   );
+// });
 
 async function disasterLoader({
   search,
@@ -148,7 +148,7 @@ async function disasterResolver(val: string) {
 }
 
 function onDisasterChange(val: any) {
-  props.form.disasterId = val;
+  props.form.disasterId = Number(val) || 0;
 }
 
 // Data detail bencana yang dipilih (prioritas dari daftar atau dari fetch detail per ID)
@@ -322,7 +322,7 @@ function onNikInput(event: Event) {
         </label>
         <ComboboxSelect
           id="resident-disaster"
-          v-model="form.disasterId"
+          :model-value="form.disasterId ? String(form.disasterId) : ''"
           :load="disasterLoader"
           :resolve="disasterResolver"
           placeholder="Pilih bencana aktif..."
@@ -499,8 +499,8 @@ function onNikInput(event: Event) {
           >
             <option value="Pusat">Pusat</option>
             <option value="Provinsi">Provinsi</option>
-            <option value="Kabupaten">Kabupaten</option>
-            <option value="Kota">Kota</option>
+            <option value="KabupatenKota">Kabupaten / Kota</option>
+            <option value="MasyarakatSwasta">Masyarakat / Swasta</option>
           </select>
         </div>
         <div class="grid grid-cols-2 gap-2">
