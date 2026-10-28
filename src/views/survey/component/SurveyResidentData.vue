@@ -68,13 +68,6 @@ async function loadDisasterDetail(disasterId: number) {
   }
 }
 
-// Filter hanya bencana yang berstatus "Active"
-const activeDisasters = computed(() => {
-  return disasterStore.items.filter(
-    (item: any) => (item.disasterStatus ?? item.status) === "Active",
-  );
-});
-
 async function disasterLoader({
   search,
   page,

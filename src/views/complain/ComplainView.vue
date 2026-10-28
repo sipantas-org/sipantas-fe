@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RiEyeLine, RiMoreLine } from "@remixicon/vue";
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
 import DataTable, { type Column } from "@/components/DataTable.vue";
 import DataTableFilter, {
