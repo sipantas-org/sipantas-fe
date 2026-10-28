@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { useUploadStore } from "@/stores/uploads";
 
+const IMAGE_FILE_PATH = import.meta.env.VITE_IMAGE_FILE_PATH ?? "";
+
 export interface UploadedImageItem {
   id: string;
   category: string;
@@ -385,7 +387,7 @@ function handleCloseModal() {
             :src="
               activePreviewItem.previewUrl?.startsWith('blob:')
                 ? activePreviewItem.previewUrl
-                : `http://localhost:3000/uploads/${activePreviewItem.filePath}/${activePreviewItem.fileName}`
+                : `${IMAGE_FILE_PATH}${activePreviewItem.filePath}/${activePreviewItem.fileName}`
             "
             :alt="activePreviewItem.fileName"
             class="object-contain max-h-[65vh] w-full"

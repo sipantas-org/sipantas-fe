@@ -187,17 +187,7 @@ const detailLoading = ref(false);
 const detailItem = ref<any>(null);
 
 async function openDetail(item: SurveyItem) {
-  detailItem.value = item;
-  detailOpen.value = true;
-  detailLoading.value = true;
-  try {
-    const res = await surveyStore.fetchSurvey(item.surveyId);
-    detailItem.value = (res as any)?.data ?? res;
-  } catch (error) {
-    toast.error(errorMessage(error, "Gagal memuat rincian survei."));
-  } finally {
-    detailLoading.value = false;
-  }
+  router.push(`/survey/${item.surveyId}`);
 }
 
 // Hapus Data
