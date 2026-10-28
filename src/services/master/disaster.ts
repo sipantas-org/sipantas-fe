@@ -22,6 +22,7 @@ export interface DisasterItem {
   disasterCode: string;
   disasterName: string;
   disasterCategory: string;
+  disasterDate: string;
   disasterStatus: DisasterStatus | string;
   provinceId: string;
   provinceName?: string;

@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { onMounted, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { toast } from "vue-sonner";
+import { RiLoader4Line } from "@remixicon/vue";
 import { useAuthStore } from "@/stores/auth";
+import { fetchDisasters } from "@/services/master/disaster";
+import { useDisasterStore } from "@/stores/disaster";
 import ComboboxSelect from "@/components/ComboboxSelect.vue";
 import MapCoordinatePicker from "./MapCoordinatePicker.vue";
 import {
@@ -21,11 +24,157 @@ const props = defineProps<{
   form: CreateSurveyPayload;
   errors: Record<string, string>;
   isDetailMode: boolean;
+  isCreateMode?: boolean;
 }>();
 
 const authStore = useAuthStore();
+const disasterStore = useDisasterStore();
 const route = useRoute();
 const router = useRouter();
+
+const isCreateMode = computed(() => {
+  if (props.isCreateMode !== undefined) {
+    return props.isCreateMode;
+  }
+  return (
+    !props.isDetailMode && !route.path.includes("/edit") && !route.params.id
+  );
+});
+
+const detailDisaster = ref<any>(null);
+const loadingDisaster = ref(false);
+
+async function loadDisasterDetail(disasterId: number) {
+  if (!disasterId) {
+    detailDisaster.value = null;
+    return;
+  }
+  const existing = disasterStore.items.find(
+    (d: any) => Number(d.disasterId) === Number(disasterId),
+  );
+  if (existing) {
+    detailDisaster.value = existing;
+    return;
+  }
+
+  loadingDisaster.value = true;
+  try {
+    const res = await disasterStore.fetchDisaster(disasterId);
+    detailDisaster.value = (res as any)?.data ?? res;
+  } catch (error) {
+    console.error("Gagal memuat detail bencana:", error);
+  } finally {
+    loadingDisaster.value = false;
+  }
+}
+
+// Filter hanya bencana yang berstatus "Active"
+const activeDisasters = computed(() => {
+  return disasterStore.items.filter(
+    (item: any) => (item.disasterStatus ?? item.status) === "Active",
+  );
+});
+
+async function disasterLoader({
+  search,
+  page,
+  limit,
+}: {
+  search?: string;
+  page?: number;
+  limit?: number;
+}) {
+  try {
+    const res = await fetchDisasters({
+      status: "Active",
+      disasterName: search?.trim() || undefined,
+      page: page ?? 1,
+      limit: limit ?? 20,
+    });
+    const items =
+      (res as any)?.items ??
+      (Array.isArray((res as any)?.data) ? (res as any).data : []);
+    const total =
+      (res as any)?.total ?? (res as any)?.pagination?.total ?? items.length;
+    return {
+      items: items.map((item: any) => ({
+        value: String(item.disasterId),
+        label: `${item.disasterName} (${item.disasterCode})`,
+      })),
+      total,
+    };
+  } catch (error) {
+    console.error("Gagal memuat opsi bencana:", error);
+    return {
+      items: [],
+      total: 0,
+    };
+  }
+}
+
+async function disasterResolver(val: string) {
+  if (!val || Number(val) === 0) return undefined;
+  const id = Number(val);
+  const strVal = String(val);
+  const fromList = disasterStore.items.find(
+    (d: any) => Number(d.disasterId) === id,
+  );
+  if (fromList) {
+    return {
+      value: strVal,
+      label: `${fromList.disasterName} (${fromList.disasterCode})`,
+    };
+  }
+  if (detailDisaster.value && Number(detailDisaster.value.disasterId) === id) {
+    return {
+      value: strVal,
+      label: `${detailDisaster.value.disasterName} (${detailDisaster.value.disasterCode})`,
+    };
+  }
+  try {
+    const res = await disasterStore.fetchDisaster(id);
+    const data = (res as any)?.data ?? res;
+    if (data) {
+      detailDisaster.value = data;
+      return {
+        value: strVal,
+        label: `${data.disasterName} (${data.disasterCode})`,
+      };
+    }
+  } catch (error) {
+    console.error("Gagal memuat label bencana:", error);
+  }
+  return undefined;
+}
+
+function onDisasterChange(val: any) {
+  props.form.disasterId = val;
+}
+
+// Data detail bencana yang dipilih (prioritas dari daftar atau dari fetch detail per ID)
+const selectedDisaster = computed(() => {
+  if (!props.form.disasterId) return null;
+  const fromList = disasterStore.items.find(
+    (d: any) => Number(d.disasterId) === Number(props.form.disasterId),
+  );
+  return fromList ?? detailDisaster.value;
+});
+
+watch(
+  () => props.form.disasterId,
+  (val) => {
+    const id = Number(val);
+    if (val && !Number.isNaN(id) && id > 0) {
+      if (props.errors.disasterId) {
+        delete props.errors.disasterId;
+      }
+      loadDisasterDetail(id);
+    } else {
+      detailDisaster.value = null;
+    }
+  },
+  { immediate: true },
+);
 
 // Sinkronisasi nilai default provinsi & kota/kabupaten dari user login di authStore
 watch(
@@ -78,6 +227,11 @@ function validateAccess() {
 
 onMounted(() => {
   validateAccess();
+  if (isCreateMode.value) {
+    disasterStore.limit = 100;
+    disasterStore.appliedFilters.status = "Active";
+    disasterStore.fetchDisastersList();
+  }
 });
 
 watch(
@@ -146,6 +300,162 @@ function onNikInput(event: Event) {
 
 <template>
   <fieldset :disabled="isDetailMode" class="space-y-6">
+    <!-- KARTU DATA BENCANA -->
+    <div
+      v-if="isCreateMode || form.disasterId || selectedDisaster"
+      class="rounded-xl border p-5 bg-card space-y-4"
+    >
+      <div class="flex items-center justify-between border-b pb-2">
+        <h2 class="text-base font-semibold">Data Bencana</h2>
+        <span
+          v-if="disasterStore.loading || loadingDisaster"
+          class="text-xs text-muted-foreground flex items-center gap-1"
+        >
+          <RiLoader4Line class="size-3.5 animate-spin" /> Memuat data bencana...
+        </span>
+      </div>
+
+      <!-- Combo Box Pilih Bencana (Hanya muncul saat Create mode) -->
+      <div v-if="isCreateMode">
+        <label class="text-xs font-medium text-foreground">
+          Pilih Bencana *
+        </label>
+        <ComboboxSelect
+          id="resident-disaster"
+          v-model="form.disasterId"
+          :load="disasterLoader"
+          :resolve="disasterResolver"
+          placeholder="Pilih bencana aktif..."
+          search-placeholder="Cari bencana..."
+          trigger-class="mt-1 h-9 text-sm"
+          :invalid="!!errors.disasterId"
+          @change="onDisasterChange"
+        />
+        <p v-if="errors.disasterId" class="text-xs text-destructive mt-1">
+          {{ errors.disasterId }}
+        </p>
+      </div>
+
+      <!-- Indikator Loading Detail Bencana (saat Edit/Detail) -->
+      <div
+        v-if="loadingDisaster && !selectedDisaster"
+        class="flex items-center justify-center py-4 text-xs text-muted-foreground gap-2"
+      >
+        <RiLoader4Line class="size-4 animate-spin" />
+        <span>Memuat detail data bencana...</span>
+      </div>
+
+      <!-- Detail Read-Only Bencana yang Dipilih -->
+      <div
+        v-if="selectedDisaster"
+        class="pt-2 space-y-4"
+        :class="{ 'border-t': isCreateMode }"
+      >
+        <h3
+          class="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+        >
+          Detail Bencana
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-medium text-foreground"
+              >Kode Bencana</label
+            >
+            <input
+              :value="selectedDisaster.disasterCode"
+              type="text"
+              disabled
+              class="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50"
+            />
+          </div>
+          <div>
+            <label class="text-xs font-medium text-foreground"
+              >Nama Bencana</label
+            >
+            <input
+              :value="selectedDisaster.disasterName"
+              type="text"
+              disabled
+              class="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50"
+            />
+          </div>
+          <div>
+            <label class="text-xs font-medium text-foreground"
+              >Kategori Bencana</label
+            >
+            <input
+              :value="selectedDisaster.disasterCategory"
+              type="text"
+              disabled
+              class="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50"
+            />
+          </div>
+          <div>
+            <label class="text-xs font-medium text-foreground"
+              >Status Bencana</label
+            >
+            <input
+              :value="
+                (selectedDisaster as any).disasterStatus ??
+                (selectedDisaster as any).status
+              "
+              type="text"
+              disabled
+              class="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50"
+            />
+          </div>
+          <div>
+            <label class="text-xs font-medium text-foreground">Provinsi</label>
+            <input
+              :value="
+                (selectedDisaster as any).provinceName ??
+                (selectedDisaster as any).province?.name ??
+                '-'
+              "
+              type="text"
+              disabled
+              class="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50"
+            />
+          </div>
+          <div>
+            <label class="text-xs font-medium text-foreground"
+              >Kabupaten / Kota</label
+            >
+            <input
+              :value="
+                (selectedDisaster as any).regencyName ??
+                (selectedDisaster as any).regency?.name ??
+                '-'
+              "
+              type="text"
+              disabled
+              class="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50"
+            />
+          </div>
+          <div>
+            <label class="text-xs font-medium text-foreground"
+              >Tanggal Bencana</label
+            >
+            <input
+              :value="selectedDisaster.disasterDate ?? '-'"
+              type="text"
+              disabled
+              class="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50"
+            />
+          </div>
+          <div class="md:col-span-2">
+            <label class="text-xs font-medium text-foreground">Deskripsi</label>
+            <textarea
+              :value="(selectedDisaster as any).description ?? '-'"
+              rows="2"
+              disabled
+              class="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="rounded-xl border p-5 bg-card space-y-4">
       <h2 class="text-base font-semibold border-b pb-2">Formulir Rumah</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -312,7 +622,7 @@ function onNikInput(event: Event) {
             readonly
             tabindex="-1"
             placeholder="-6.2088"
-            class="mt-1 flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm shadow-sm focus-visible:outline-none cursor-default text-muted-foreground"
+            class="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50"
           />
         </div>
         <div>
@@ -323,7 +633,7 @@ function onNikInput(event: Event) {
             readonly
             tabindex="-1"
             placeholder="106.8456"
-            class="mt-1 flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm shadow-sm focus-visible:outline-none cursor-default text-muted-foreground"
+            class="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-default disabled:opacity-50"
           />
         </div>
         <div class="md:col-span-2">
