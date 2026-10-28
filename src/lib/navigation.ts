@@ -5,6 +5,7 @@ import {
   RiUserLine,
   RiSurveyLine,
   RiSurveyFill,
+  RiEmotionUnhappyLine,
 } from "@remixicon/vue";
 import type { Component } from "vue";
 import type { Role } from "@/lib/theme";
@@ -75,6 +76,12 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Survey",
     to: "/survey",
     icon: RiSurveyFill,
+    roles: ["surveyor"],
+  },
+  {
+    label: "Complain",
+    to: "/complain",
+    icon: RiEmotionUnhappyLine,
     roles: ["surveyor"],
   },
   {
