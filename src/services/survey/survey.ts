@@ -8,8 +8,9 @@ import {
 } from "@/lib/http";
 
 export type SurveyStatus =
-  "Pending" | "OnComplain" | "OnBudgeting" | "OnConstruction" | "Completed";
-export type SurveyAuthority = "Pusat" | "Provinsi" | "Kabupaten" | "Kota";
+  "Pending" | "OnComplain" | "OnVerification" | "OnBudgeting" | "OnConstruction" | "Completed";
+export type SurveyAuthority =
+  "Pusat" | "Provinsi" | "KabupatenKota" | "MasyarakatSwasta";
 export type DamageLevel = "Ringan" | "Sedang" | "Berat" | "TMK";
 export type SortOrder = "asc" | "desc";
 

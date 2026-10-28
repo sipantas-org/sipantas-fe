@@ -60,7 +60,7 @@ const steps = [
 
 // Form State
 const form = reactive<CreateSurveyPayload>({
-  disasterId: "",
+  disasterId: 0,
   sectorId: 6,
   surveyorId: Number((authStore.user as any)?.id),
   surveyStatus: "Pending",
@@ -69,7 +69,7 @@ const form = reactive<CreateSurveyPayload>({
   districtId: "",
   villageId: "",
   addressDetail: "",
-  authority: "Kabupaten" as SurveyAuthority,
+  authority: "KabupatenKota" as SurveyAuthority,
   assetName: "",
   nik: "",
   latitude: "",
@@ -182,7 +182,7 @@ onMounted(async () => {
           districtId: data.districtId ?? "",
           villageId: data.villageId ?? "",
           addressDetail: data.addressDetail ?? "",
-          authority: data.authority ?? "Kabupaten",
+          authority: data.authority ?? "KabupatenKota",
           assetName: data.assetName ?? "",
           nik: data.nik ?? "",
           latitude: data.latitude ?? "",

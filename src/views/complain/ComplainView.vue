@@ -39,6 +39,7 @@ const ACTION_META: Record<
   Resolved: { label: "Diterima (Resolved)", variant: "default" },
   Rejected: { label: "Ditolak (Rejected)", variant: "destructive" },
 };
+// const ListAction = Object.keys(ACTION_META) as ComplainAction[];
 
 const router = useRouter();
 const complainStore = useComplainStore();

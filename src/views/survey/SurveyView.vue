@@ -62,6 +62,7 @@ const STATUS_META: Record<
 > = {
   Pending: { label: "Pending", variant: "outline" },
   OnComplain: { label: "Komplain", variant: "destructive" },
+  OnVerification: { label: "Verifikasi", variant: "secondary" },
   OnBudgeting: { label: "Penganggaran", variant: "secondary" },
   OnConstruction: { label: "Pembangunan", variant: "default" },
   Completed: { label: "Selesai", variant: "ghost" },
