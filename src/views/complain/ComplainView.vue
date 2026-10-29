@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RiEyeLine, RiMoreLine } from "@remixicon/vue";
+import { RiEyeLine, RiFileList3Line, RiMoreLine } from "@remixicon/vue";
 import { computed, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
 import DataTable, { type Column } from "@/components/DataTable.vue";
@@ -55,17 +55,31 @@ const {
   sortOrder,
 } = storeToRefs(complainStore);
 
-let filterValues = reactive({
+const filterValues = reactive({
   status: "all" as ComplainStatus | "all",
-  search: "",
+  nik: complainStore.appliedFilters.nik,
+  complainantName: complainStore.appliedFilters.complainantName,
+  complainantPhone: complainStore.appliedFilters.complainantPhone,
 });
 
 const filterFields = computed<FilterField[]>(() => [
   {
-    key: "search",
-    label: "Pencarian",
+    key: "nik",
+    label: "NIK",
     type: "text",
-    placeholder: "Cari pelapor, telepon, deskripsi...",
+    placeholder: "Masukkan NIK...",
+  },
+  {
+    key: "complainantName",
+    label: "Nama Pelapor",
+    type: "text",
+    placeholder: "Masukkan nama...",
+  },
+  {
+    key: "complainantPhone",
+    label: "Nomor HP",
+    type: "text",
+    placeholder: "Masukkan nomor HP...",
   },
   {
     key: "status",
@@ -84,15 +98,16 @@ onMounted(async () => {
 });
 
 function applyFilters() {
-  complainStore.applyFilters({
-    status: filterValues.status,
-    search: filterValues.search,
-  });
+  // The API only accepts digits for the NIK filter.
+  filterValues.nik = filterValues.nik.replace(/\D/g, "");
+  complainStore.applyFilters({ ...filterValues });
 }
 
 function resetFilters() {
   filterValues.status = "all";
-  filterValues.search = "";
+  filterValues.nik = "";
+  filterValues.complainantName = "";
+  filterValues.complainantPhone = "";
   complainStore.resetFilters();
 }
 
@@ -131,8 +146,14 @@ function openDetail(item: ComplainListItem) {
   router.push(`/complain/${item.complainId}`);
 }
 
+function openSurvey(item: ComplainListItem) {
+  router.push(`/survey/${item.surveyId}`);
+}
+
 const columns: Column<ComplainListItem>[] = [
-  { key: "complainant", label: "Pelapor" },
+  { key: "complainantName", label: "Pelapor", sortable: true },
+  { key: "complainantNik", label: "NIK" },
+  { key: "surveyId", label: "Survei", sortable: true },
   { key: "description", label: "Deskripsi" },
   { key: "status", label: "Status", sortable: true },
   { key: "action", label: "Tindakan" },
@@ -187,11 +208,17 @@ const columns: Column<ComplainListItem>[] = [
         <span class="font-medium">#{{ item.complainId }}</span>
       </template>
 
-      <template #cell-complainant="{ item }">
-        <div class="font-medium">{{ item.complainantName }}</div>
+      <template #cell-complainantName="{ item }">
+        <div class="font-medium">{{ item.complainantName || "-" }}</div>
         <div class="text-muted-foreground text-xs">
-          {{ item.complainantPhone }}
+          {{ item.complainantPhone || "-" }}
         </div>
+      </template>
+
+      <template #cell-complainantNik="{ item }">
+        <span class="text-muted-foreground">
+          {{ item.complainantNik || "-" }}
+        </span>
       </template>
 
       <template #cell-surveyId="{ item }">
@@ -235,6 +262,9 @@ const columns: Column<ComplainListItem>[] = [
           <DropdownMenuContent align="end" class="w-40">
             <DropdownMenuItem class="h-9 text-sm" @select="openDetail(item)">
               <RiEyeLine /> Detail
+            </DropdownMenuItem>
+            <DropdownMenuItem class="h-9 text-sm" @select="openSurvey(item)">
+              <RiFileList3Line /> Lihat survei
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
