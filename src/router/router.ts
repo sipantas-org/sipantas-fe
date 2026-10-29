@@ -250,8 +250,8 @@ router.beforeEach((to) => {
   if (to.meta.administratorOnly && auth.isMonitoring)
     return { name: "dashboard" };
 
-  const role =
-    to.params.role ?? to.meta.role ?? (to.meta.requiresAuth ? auth.role : null);
+  // Login and register pages use their own role; everywhere else a signed-in user's role applies, and visitors get the admin (default) theme.
+  const role = to.params.role ?? to.meta.role ?? auth.role;
   applyTheme(typeof role === "string" && isRole(role) ? role : null);
 });
 
