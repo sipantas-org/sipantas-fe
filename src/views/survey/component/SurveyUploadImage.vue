@@ -33,10 +33,15 @@ const props = withDefaults(
     folderPath?: string;
     isDetailMode?: boolean;
     modelValue?: DocumentationApiPayload[];
+    // Overrides the damage categories (e.g. for complaint evidence).
+    categories?: readonly { value: string; text: string }[];
+    title?: string;
   }>(),
   {
     isDetailMode: false,
     modelValue: () => [],
+    categories: undefined,
+    title: "Unggah Dokumentasi Kerusakan",
   },
 );
 
@@ -79,8 +84,10 @@ const CATEGORY_OPTIONS = [
   { value: "Lainnya", text: "Lainnya" },
 ] as const;
 
+const categoryOptions = computed(() => props.categories ?? CATEGORY_OPTIONS);
+
 // Local state
-const selectedCategory = ref<string>(CATEGORY_OPTIONS[0].value);
+const selectedCategory = ref<string>("");
 const selectedFile = ref<File | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const imageList = ref<UploadedImageItem[]>([]);
@@ -213,7 +220,7 @@ function handleCloseModal() {
         class="text-base font-semibold tracking-tight flex items-center gap-2"
       >
         <RiUploadCloud2Line class="size-5 text-primary" />
-        Unggah Dokumentasi Kerusakan
+        {{ title }}
       </h2>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
@@ -228,7 +235,7 @@ function handleCloseModal() {
             :disabled="uploadStore.isUploading"
           >
             <option
-              v-for="cat in CATEGORY_OPTIONS"
+              v-for="cat in categoryOptions"
               :key="cat.value"
               :value="cat.value"
             >
@@ -385,7 +392,7 @@ function handleCloseModal() {
               (activePreviewItem.filePath && activePreviewItem.fileName)
             "
             :src="
-              activePreviewItem.previewUrl?.startsWith('blob:')
+              /^(blob:|https?:)/.test(activePreviewItem.previewUrl ?? '')
                 ? activePreviewItem.previewUrl
                 : `${IMAGE_FILE_PATH}${activePreviewItem.filePath}/${activePreviewItem.fileName}`
             "

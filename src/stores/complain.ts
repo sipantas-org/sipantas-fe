@@ -31,8 +31,9 @@ export const useComplainStore = defineStore("complain", () => {
 
   const appliedFilters = reactive({
     status: "all" as ComplainStatus | "all",
-    surveyId: undefined as number | undefined,
-    search: "",
+    nik: "",
+    complainantName: "",
+    complainantPhone: "",
   });
 
   let loadId = 0;
@@ -47,8 +48,9 @@ export const useComplainStore = defineStore("complain", () => {
           appliedFilters.status === "all"
             ? undefined
             : (appliedFilters.status as ComplainStatus),
-        surveyId: appliedFilters.surveyId,
-        search: appliedFilters.search || undefined,
+        nik: appliedFilters.nik || undefined,
+        complainantName: appliedFilters.complainantName || undefined,
+        complainantPhone: appliedFilters.complainantPhone || undefined,
         sortBy: sortBy.value,
         sortOrder: sortBy.value ? sortOrder.value : undefined,
         page: page.value,
@@ -103,11 +105,19 @@ export const useComplainStore = defineStore("complain", () => {
   ) {
     const res = await updateComplainStatus(id, payload);
     const updated = ((res as any)?.data ?? res) as ComplainDetail;
-    if (selectedComplain.value?.complainId === id) {
-      selectedComplain.value = updated;
+    // The status endpoint does not return the attachments, so keep the ones already loaded.
+    const previous =
+      selectedComplain.value?.complainId === id ? selectedComplain.value : null;
+    const merged: ComplainDetail = {
+      ...previous,
+      ...updated,
+      fileComplain: updated.fileComplain ?? previous?.fileComplain ?? [],
+    };
+    if (previous) {
+      selectedComplain.value = merged;
     }
     await fetchComplains();
-    return updated;
+    return merged;
   }
 
   function resetSelectedComplain() {
@@ -116,22 +126,30 @@ export const useComplainStore = defineStore("complain", () => {
 
   function applyFilters(filters: {
     status: ComplainStatus | "all";
-    search?: string;
-    surveyId?: number;
+    nik: string;
+    complainantName: string;
+    complainantPhone: string;
   }) {
     appliedFilters.status = filters.status;
-    appliedFilters.search = filters.search?.trim() ?? "";
-    appliedFilters.surveyId = filters.surveyId;
-    page.value = 1;
-    fetchComplains();
+    appliedFilters.nik = filters.nik.trim();
+    appliedFilters.complainantName = filters.complainantName.trim();
+    appliedFilters.complainantPhone = filters.complainantPhone.trim();
+
+    // A page change triggers the fetch through the watcher below.
+    if (page.value !== 1) {
+      page.value = 1;
+    } else {
+      fetchComplains();
+    }
   }
 
   function resetFilters() {
-    appliedFilters.status = "all";
-    appliedFilters.search = "";
-    appliedFilters.surveyId = undefined;
-    page.value = 1;
-    fetchComplains();
+    applyFilters({
+      status: "all",
+      nik: "",
+      complainantName: "",
+      complainantPhone: "",
+    });
   }
 
   watch(page, fetchComplains);

@@ -109,6 +109,16 @@ function goBack() {
   router.push("/complain");
 }
 
+// Joins the storage base URL, the folder and the file name with single slashes.
+function fileUrl(filePath: string, fileName: string) {
+  const base = filePath.startsWith("http")
+    ? filePath
+    : `${IMAGE_FILE_PATH}${filePath}`;
+  const trimmedBase = base.endsWith("/") ? base.slice(0, -1) : base;
+  const name = fileName.startsWith("/") ? fileName.slice(1) : fileName;
+  return `${trimmedBase}/${name}`;
+}
+
 function isImageFile(fileName?: string, filePath?: string) {
   const target = (fileName || filePath || "").toLowerCase();
   return /\.(jpg|jpeg|png|webp|gif|svg)$/.test(target);
@@ -309,7 +319,7 @@ function formatDate(dateStr?: string | null) {
                   class="aspect-video w-full overflow-hidden bg-black/5 flex items-center justify-center"
                 >
                   <img
-                    :src="`${IMAGE_FILE_PATH}${img.filePath}${img.fileName}`"
+                    :src="fileUrl(img.filePath, img.fileName)"
                     :alt="img.fileName"
                     class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
@@ -333,7 +343,7 @@ function formatDate(dateStr?: string | null) {
                     as-child
                   >
                     <a
-                      :href="`${IMAGE_FILE_PATH}${img.filePath}${img.fileName}`"
+                      :href="fileUrl(img.filePath, img.fileName)"
                       target="_blank"
                       rel="noopener noreferrer"
                       title="Buka gambar"
@@ -377,7 +387,7 @@ function formatDate(dateStr?: string | null) {
                     as-child
                   >
                     <a
-                      :href="file.filePath"
+                      :href="fileUrl(file.filePath, file.fileName)"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -481,7 +491,7 @@ function formatDate(dateStr?: string | null) {
             >
               <SelectValue placeholder="Pilih tindakan" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               <SelectItem
                 v-for="act in ListAction"
                 :key="act"
