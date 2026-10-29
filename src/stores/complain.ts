@@ -105,11 +105,19 @@ export const useComplainStore = defineStore("complain", () => {
   ) {
     const res = await updateComplainStatus(id, payload);
     const updated = ((res as any)?.data ?? res) as ComplainDetail;
-    if (selectedComplain.value?.complainId === id) {
-      selectedComplain.value = updated;
+    // The status endpoint does not return the attachments, so keep the ones already loaded.
+    const previous =
+      selectedComplain.value?.complainId === id ? selectedComplain.value : null;
+    const merged: ComplainDetail = {
+      ...previous,
+      ...updated,
+      fileComplain: updated.fileComplain ?? previous?.fileComplain ?? [],
+    };
+    if (previous) {
+      selectedComplain.value = merged;
     }
     await fetchComplains();
-    return updated;
+    return merged;
   }
 
   function resetSelectedComplain() {
