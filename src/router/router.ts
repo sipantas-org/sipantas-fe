@@ -31,9 +31,13 @@ const router = createRouter({
     },
     {
       path: "/",
+      name: "landing",
+      component: () => import("@/views/LandingView.vue"),
+    },
+    {
+      path: "/",
       component: () => import("@/layouts/AppLayout.vue"),
       meta: { requiresAuth: true },
-      redirect: { name: "dashboard" },
       children: [
         {
           path: "dashboard",
