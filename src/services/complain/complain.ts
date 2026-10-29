@@ -65,8 +65,9 @@ export interface CreateComplainFilePayload {
 
 export interface CreateComplainPayload {
   surveyId: number;
-  complainantName: string;
-  complainantPhone: string;
+  // Optional in the API; the reporter's NIK is taken from the survey.
+  complainantName?: string;
+  complainantPhone?: string;
   description: string;
   files: CreateComplainFilePayload[];
 }
@@ -107,6 +108,29 @@ export async function fetchComplains(
     total: pagination.total ?? result?.total ?? items.length,
     pagination,
   };
+}
+
+// Minimal survey data returned by the public NIK lookup.
+export interface ComplainSurveyLookup {
+  surveyId: number;
+  nik: string;
+  assetName: string;
+  addressDetail: string;
+  surveyStatus: string;
+  provinceName?: string | null;
+  regencyName?: string | null;
+  districtName?: string | null;
+  villageName?: string | null;
+  createdAt: string;
+}
+
+// The NIK goes in the body (not the URL) so it stays out of access logs; the API allows 5 lookups a minute.
+export function searchPendingSurveyByNik(nik: string) {
+  return request<ComplainSurveyLookup>("/api/survey-complains/search-by-nik", {
+    method: "POST",
+    body: { nik },
+    token: null,
+  });
 }
 
 export function fetchComplainDetail(id: number) {

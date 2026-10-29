@@ -10,6 +10,8 @@ declare module "vue-router" {
     requiresAuth?: boolean;
     roles?: readonly Role[];
     administratorOnly?: boolean;
+    // Only for visitors; signed-in users are sent to the dashboard.
+    guestOnly?: boolean;
   }
 }
 
@@ -33,6 +35,12 @@ const router = createRouter({
       path: "/",
       name: "landing",
       component: () => import("@/views/LandingView.vue"),
+    },
+    {
+      path: "/ajukan-komplain",
+      name: "complain-submit",
+      component: () => import("@/views/ComplainSubmitView.vue"),
+      meta: { guestOnly: true },
     },
     {
       path: "/",
@@ -233,6 +241,8 @@ router.beforeEach((to) => {
 
   if ((to.name === "login" || to.name === "register") && auth.role)
     return { name: "dashboard" };
+
+  if (to.meta.guestOnly && auth.role) return { name: "dashboard" };
 
   if (to.meta.roles && auth.role && !to.meta.roles.includes(auth.role))
     return { name: "dashboard" };
