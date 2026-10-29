@@ -8,7 +8,12 @@ import {
 } from "@/lib/http";
 
 export type SurveyStatus =
-  "Pending" | "OnComplain" | "OnVerification" | "OnBudgeting" | "OnConstruction" | "Completed";
+  | "Pending"
+  | "OnComplain"
+  | "OnVerification"
+  | "OnBudgeting"
+  | "OnConstruction"
+  | "Completed";
 export type SurveyAuthority =
   "Pusat" | "Provinsi" | "KabupatenKota" | "MasyarakatSwasta";
 export type DamageLevel = "Ringan" | "Sedang" | "Berat" | "TMK";
@@ -126,7 +131,7 @@ export interface SurveyFileCategoryPayload {
 }
 
 export interface CreateSurveyPayload {
-  disasterId: string;
+  disasterId: number;
   sectorId: number;
   surveyorId?: number;
   surveyStatus?: SurveyStatus | string;
@@ -143,8 +148,8 @@ export interface CreateSurveyPayload {
   damageLevel?: DamageLevel | string;
   volume: string;
   volumeUnit: string;
-  totalPriceUnit?: number | string;
-  totalPriceFurniture?: number | string;
+  totalPriceUnit?: number;
+  totalPriceFurniture?: number;
   totalScore?: string | number;
   sourceOfBudgetting?: string | null;
   furnitureDetails?: SurveyFurnitureDetailPayload[];

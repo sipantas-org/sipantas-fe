@@ -195,7 +195,12 @@ onMounted(async () => {
             ? Number(data.totalPriceFurniture)
             : 0,
           furnitureDetails: Array.isArray(data.furnitureDetails)
-            ? data.furnitureDetails
+            ? data.furnitureDetails.map((item: any) => ({
+                ...item,
+                quantity: Number(item.quantity) || 0,
+                unitPrice: Number(item.unitPrice) || 0,
+                totalPrice: Number(item.totalPrice) || 0,
+              }))
             : [],
           housingDetails: Array.isArray(data.housingDetails)
             ? data.housingDetails
@@ -241,6 +246,14 @@ async function handleSubmit() {
     const currentSurveyorId = (authStore.user as any)?.id;
     const payload = {
       ...form,
+      totalPriceUnit: Number(form.totalPriceUnit) || 0,
+      totalPriceFurniture: Number(form.totalPriceFurniture) || 0,
+      furnitureDetails: form.furnitureDetails?.map((f) => ({
+        ...f,
+        quantity: Number(f.quantity) || 0,
+        unitPrice: Number(f.unitPrice) || 0,
+        totalPrice: (Number(f.quantity) || 0) * (Number(f.unitPrice) || 0),
+      })),
       ...(!isEditMode.value && currentSurveyorId
         ? { surveyorId: Number(currentSurveyorId) }
         : {}),
