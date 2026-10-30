@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import {
   RiAlertLine,
@@ -8,6 +8,7 @@ import {
   RiCloseCircleLine,
   RiFileList3Line,
   RiMapPinLine,
+  RiRefreshLine,
   RiRestartLine,
 } from "@remixicon/vue";
 import {
@@ -18,9 +19,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuthStore } from "@/stores/auth";
+import { useDashboardSurveyorStore } from "@/stores/dashboard-surveyor";
 
 const router = useRouter();
 const auth = useAuthStore();
+const dashboardStore = useDashboardSurveyorStore();
 
 const userName = computed(() => (auth.user as any)?.nama || "Surveyor");
 const surveyorLocation = computed(() => {
@@ -32,14 +35,41 @@ const surveyorLocation = computed(() => {
   return [city, province].filter(Boolean).join(", ");
 });
 
-const dummyStats = ref({
-  totalSubmitted: 48,
-  completed: 35,
-  onComplain: 3,
-  ringan: 20,
-  sedang: 14,
-  berat: 9,
-  tmk: 5,
+onMounted(async () => {
+  try {
+    await dashboardStore.fetchDashboardData();
+  } catch {
+    // Error ditangani via state dashboardStore.error
+  }
+});
+
+const stats = computed(() => {
+  const statuses = dashboardStore.statusSummaries;
+  const damages = dashboardStore.damageDistributions;
+
+  const totalSubmitted = statuses.reduce((acc, curr) => acc + curr.count, 0);
+  const completed =
+    statuses.find((item) => item.key === "Completed")?.count ?? 0;
+  const onVerification =
+    statuses.find((item) => item.key === "OnVerification")?.count ?? 0;
+
+  const ringan =
+    damages.find((item) => item.level === "Rusak Ringan")?.count ?? 0;
+  const sedang =
+    damages.find((item) => item.level === "Rusak Sedang")?.count ?? 0;
+  const berat =
+    damages.find((item) => item.level === "Rusak Berat")?.count ?? 0;
+  const tmk = damages.find((item) => item.level.startsWith("TMK"))?.count ?? 0;
+
+  return {
+    totalSubmitted,
+    completed,
+    onVerification,
+    ringan,
+    sedang,
+    berat,
+    tmk,
+  };
 });
 </script>
 
@@ -52,11 +82,29 @@ const dummyStats = ref({
         <h1 class="text-2xl font-bold tracking-tight">
           Selamat datang, {{ userName }}
         </h1>
-        <p class="text-muted-foreground text-sm">
-          Pantau progres pendataan survei lapangan Anda dan kelola laporan
-          kerusakan.
-        </p>
       </div>
+    </div>
+
+    <!-- Error Banner -->
+    <div
+      v-if="dashboardStore.error"
+      class="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive"
+    >
+      <div class="flex items-center gap-2">
+        <RiAlertLine class="h-5 w-5 shrink-0" />
+        <span>{{ dashboardStore.error }}</span>
+      </div>
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 rounded-md px-3 py-1 font-medium hover:bg-destructive/20 transition-colors"
+        @click="dashboardStore.fetchDashboardData()"
+      >
+        <RiRefreshLine
+          class="h-4 w-4"
+          :class="{ 'animate-spin': dashboardStore.isLoading }"
+        />
+        Muat Ulang
+      </button>
     </div>
 
     <!-- Ringkasan Info Surveyor -->
@@ -74,7 +122,7 @@ const dummyStats = ref({
             {{ surveyorLocation ?? "Belum diatur" }}
           </div>
           <p class="mt-1 text-muted-foreground text-xs">
-            Cakupan area penugasan Anda
+            Cakupan area penugasan
           </p>
         </CardContent>
       </Card>
@@ -86,7 +134,7 @@ const dummyStats = ref({
         </CardHeader>
         <CardContent>
           <div class="text-2xl font-bold">
-            {{ dummyStats.totalSubmitted }}
+            {{ stats.totalSubmitted }}
           </div>
           <p class="text-muted-foreground text-xs">
             Total data survei yang diinput
@@ -101,7 +149,7 @@ const dummyStats = ref({
         </CardHeader>
         <CardContent>
           <div class="text-2xl font-bold text-success">
-            {{ dummyStats.completed }}
+            {{ stats.completed }}
           </div>
           <p class="text-muted-foreground text-xs">
             Data tuntas dan lolos verifikasi
@@ -111,15 +159,15 @@ const dummyStats = ref({
 
       <Card>
         <CardHeader class="flex flex-row items-center justify-between pb-2">
-          <CardTitle class="text-sm font-medium">Proses Ulang</CardTitle>
+          <CardTitle class="text-sm font-medium">Dalam Verifikasi</CardTitle>
           <RiRestartLine class="size-4 shrink-0 text-destructive" />
         </CardHeader>
         <CardContent>
           <div class="text-2xl font-bold text-destructive">
-            {{ dummyStats.onComplain }}
+            {{ stats.onVerification }}
           </div>
           <p class="mt-1 text-muted-foreground text-xs">
-            Perlu verifikasi & pendataan ulang
+            Sedang proses verifikasi & revisi
           </p>
         </CardContent>
       </Card>
@@ -145,7 +193,7 @@ const dummyStats = ref({
             <div
               class="text-2xl font-bold text-emerald-600 dark:text-emerald-400"
             >
-              {{ dummyStats.ringan }}
+              {{ stats.ringan }}
             </div>
             <p class="mt-1 text-muted-foreground text-xs">
               Kerusakan non-struktural / ringan
@@ -161,7 +209,7 @@ const dummyStats = ref({
           </CardHeader>
           <CardContent>
             <div class="text-2xl font-bold text-amber-600 dark:text-amber-400">
-              {{ dummyStats.sedang }}
+              {{ stats.sedang }}
             </div>
             <p class="mt-1 text-muted-foreground text-xs">
               Kerusakan sebagian struktur bangunan
@@ -177,7 +225,7 @@ const dummyStats = ref({
           </CardHeader>
           <CardContent>
             <div class="text-2xl font-bold text-rose-600 dark:text-rose-400">
-              {{ dummyStats.berat }}
+              {{ stats.berat }}
             </div>
             <p class="mt-1 text-muted-foreground text-xs">
               Kerusakan struktur utama / roboh
@@ -193,7 +241,7 @@ const dummyStats = ref({
           </CardHeader>
           <CardContent>
             <div class="text-2xl font-bold text-muted-foreground">
-              {{ dummyStats.tmk }}
+              {{ stats.tmk }}
             </div>
             <p class="mt-1 text-muted-foreground text-xs">
               Tidak Memenuhi Kriteria bantuan

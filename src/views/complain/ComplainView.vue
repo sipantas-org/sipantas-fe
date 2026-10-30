@@ -153,7 +153,6 @@ function openSurvey(item: ComplainListItem) {
 const columns: Column<ComplainListItem>[] = [
   { key: "complainantName", label: "Pelapor", sortable: true },
   { key: "complainantNik", label: "NIK" },
-  { key: "surveyId", label: "Survei", sortable: true },
   { key: "description", label: "Deskripsi" },
   { key: "status", label: "Status", sortable: true },
   { key: "action", label: "Tindakan" },
