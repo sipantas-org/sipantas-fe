@@ -276,20 +276,6 @@ function goHome() {
   router.push("/");
 }
 
-function resetForm() {
-  Object.assign(form, {
-    nik: "",
-    complainantName: "",
-    complainantPhone: "",
-    description: "",
-  });
-  complainDocumentation.value = [];
-  Object.keys(errors).forEach((key) => delete errors[key as FormKey | "form"]);
-  survey.value = null;
-  currentStep.value = 1;
-  submitted.value = false;
-}
-
 async function handleSubmit() {
   // Pressing Enter in an earlier step only moves forward.
   if (currentStep.value < LAST_STEP) {
