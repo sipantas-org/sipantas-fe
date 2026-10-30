@@ -40,6 +40,10 @@ export const useSurveyStore = defineStore("survey", () => {
     surveyorId: undefined as number | undefined,
     disasterId: undefined as number | undefined,
     sectorId: undefined as number | undefined,
+    provinceId: undefined as number | undefined,
+    regencyId: undefined as number | undefined,
+    startDate: undefined as string | undefined,
+    endDate: undefined as string | undefined,
   });
 
   let loadId = 0;
@@ -62,7 +66,11 @@ export const useSurveyStore = defineStore("survey", () => {
         surveyorId: appliedFilters.surveyorId || undefined,
         nik: appliedFilters.nik || undefined,
         disasterId: appliedFilters.disasterId || undefined,
+        provinceId: appliedFilters.provinceId || undefined,
+        regencyId: appliedFilters.regencyId || undefined,
         sectorId: appliedFilters.sectorId || undefined,
+        startDate: appliedFilters.startDate || undefined,
+        endDate: appliedFilters.endDate || undefined,
         sortBy: sortBy.value,
         sortOrder: sortBy.value ? sortOrder.value : undefined,
         page: page.value,
@@ -128,6 +136,10 @@ export const useSurveyStore = defineStore("survey", () => {
     disasterId?: number;
     sectorId?: number;
     surveyorId?: number;
+    provinceId?: number;
+    regencyId?: number;
+    startDate?: string;
+    endDate?: string;
   }) {
     appliedFilters.surveyStatus = filters.surveyStatus;
     appliedFilters.damageLevel = filters.damageLevel ?? "all";
@@ -138,6 +150,10 @@ export const useSurveyStore = defineStore("survey", () => {
     appliedFilters.disasterId = filters.disasterId;
     appliedFilters.sectorId = filters.sectorId;
     appliedFilters.surveyorId = filters.surveyorId;
+    appliedFilters.provinceId = filters.provinceId;
+    appliedFilters.regencyId = filters.regencyId;
+    appliedFilters.startDate = filters.startDate;
+    appliedFilters.endDate = filters.endDate;
 
     if (page.value !== 1) {
       page.value = 1;
@@ -154,6 +170,10 @@ export const useSurveyStore = defineStore("survey", () => {
     appliedFilters.disasterId = undefined;
     appliedFilters.sectorId = undefined;
     appliedFilters.surveyorId = undefined;
+    appliedFilters.provinceId = undefined;
+    appliedFilters.regencyId = undefined;
+    appliedFilters.startDate = undefined;
+    appliedFilters.endDate = undefined;
 
     if (page.value !== 1) {
       page.value = 1;

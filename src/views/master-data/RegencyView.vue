@@ -30,7 +30,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { provinceLoader, provinceResolver } from "@/lib/area-options";
+import { provinceLoader, provinceResolver } from "@/lib/combobox-options";
 import { ApiError } from "@/lib/http";
 import { useAreaStore } from "@/stores/area";
 import { useRegencyStore } from "@/stores/regency";

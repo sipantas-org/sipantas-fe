@@ -38,7 +38,7 @@ const router = createRouter({
         {
           path: "dashboard",
           name: "dashboard",
-          component: () => import("@/views/DashboardView.vue"),
+          component: () => import("@/views/dashboard/DashboardView.vue"),
           meta: { title: "Dashboard" },
         },
         {
@@ -156,7 +156,7 @@ const router = createRouter({
           component: () => import("@/views/survey/SurveyView.vue"),
           meta: {
             title: "Survey",
-            roles: ["surveyor"],
+            roles: ["surveyor", "admin"],
           },
         },
         {

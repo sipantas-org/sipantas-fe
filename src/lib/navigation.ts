@@ -60,6 +60,12 @@ export const NAV_ITEMS: readonly NavItem[] = [
     ],
   },
   {
+    label: "Survey",
+    to: "/survey",
+    icon: RiSurveyFill,
+    roles: ["surveyor", "admin"],
+  },
+  {
     label: "User",
     icon: RiTeamLine,
     roles: ["admin"],
@@ -71,12 +77,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
       },
       { label: "Surveyor", to: "/user/surveyors" },
     ],
-  },
-  {
-    label: "Survey",
-    to: "/survey",
-    icon: RiSurveyFill,
-    roles: ["surveyor"],
   },
   {
     label: "Complain",

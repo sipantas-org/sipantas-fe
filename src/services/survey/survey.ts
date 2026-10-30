@@ -8,12 +8,7 @@ import {
 } from "@/lib/http";
 
 export type SurveyStatus =
-  | "Pending"
-  | "OnComplain"
-  | "OnVerification"
-  | "OnBudgeting"
-  | "OnConstruction"
-  | "Completed";
+  "Pending" | "OnComplain" | "OnVerification" | "OnBudgeting" | "Completed";
 export type SurveyAuthority =
   "Pusat" | "Provinsi" | "KabupatenKota" | "MasyarakatSwasta";
 export type DamageLevel = "Ringan" | "Sedang" | "Berat" | "TMK";
@@ -84,6 +79,8 @@ export interface SurveyQuery extends Record<string, unknown> {
   damageLevel?: DamageLevel | string;
   assetName?: string;
   nik?: string;
+  startDate?: string;
+  endDate?: string;
   sortBy?: string;
   sortOrder?: SortOrder;
 }
