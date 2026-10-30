@@ -2,7 +2,6 @@
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import {
-  RiAddLine,
   RiAlertLine,
   RiArrowRightLine,
   RiCheckboxCircleLine,
@@ -11,7 +10,6 @@ import {
   RiMapPinLine,
   RiRestartLine,
 } from "@remixicon/vue";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
