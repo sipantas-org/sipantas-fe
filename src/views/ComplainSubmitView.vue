@@ -19,6 +19,14 @@ import {
   searchPendingSurveyByNik,
   type ComplainSurveyLookup,
 } from "@/services/complain/complain";
+import {
+  fetchSurvey,
+  type CreateSurveyPayload,
+  type SurveyAuthority,
+} from "@/services/survey/survey";
+import SurveyDamageAssessment from "@/views/survey/component/SurveyDamageAssessment.vue";
+import SurveyLossAssessment from "@/views/survey/component/SurveyLossAssessment.vue";
+import SurveyResidentData from "@/views/survey/component/SurveyResidentData.vue";
 import SurveyUploadImage, {
   type DocumentationApiPayload,
 } from "@/views/survey/component/SurveyUploadImage.vue";
@@ -38,12 +46,6 @@ const EVIDENCE_CATEGORIES = [
   { value: "Lainnya", text: "Lainnya" },
 ] as const;
 const LAST_STEP = steps.length;
-
-const dateFormat = new Intl.DateTimeFormat("id-ID", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
 
 const currentStep = ref(1);
 const searching = ref(false);
@@ -78,10 +80,10 @@ const address = computed(() => {
   return (
     [
       s.addressDetail,
-      s.villageName,
-      s.districtName,
-      s.regencyName,
-      s.provinceName,
+      s.village?.name,
+      s.district?.name,
+      s.regency?.name,
+      s.province?.name,
     ]
       .map((part) => part?.trim())
       .filter(Boolean)
@@ -95,23 +97,91 @@ const reporterFields = computed(() => [
   { label: "Alamat", value: address.value },
 ]);
 
-const surveyFields = computed(() => {
-  const s = survey.value;
-  const created = s ? new Date(s.createdAt.replace(" ", "T")) : null;
-  return [
-    { label: "ID survei", value: s ? String(s.surveyId) : "-" },
-    { label: "Status survei", value: s?.surveyStatus ?? "-" },
-    { label: "Nama aset", value: s?.assetName ?? "-" },
-    {
-      label: "Tanggal survei",
-      value:
-        created && !Number.isNaN(created.getTime())
-          ? dateFormat.format(created)
-          : "-",
-    },
-    { label: "Alamat", value: address.value },
-  ];
+// The survey is shown read-only with the same components as the survey detail page.
+const surveyForm = reactive<CreateSurveyPayload>({
+  disasterId: 0,
+  sectorId: 0,
+  surveyStatus: "Pending",
+  provinceId: "",
+  regencyId: "",
+  districtId: "",
+  villageId: "",
+  addressDetail: "",
+  authority: "KabupatenKota" as SurveyAuthority,
+  assetName: "",
+  nik: "",
+  latitude: "",
+  longitude: "",
+  volume: "",
+  volumeUnit: "m2",
+  surveyFolderPath: "",
+  totalPriceUnit: 0,
+  totalPriceFurniture: 0,
+  furnitureDetails: [],
+  housingDetails: [],
+  lostDetails: [],
 });
+const surveyErrors = reactive<Record<string, string>>({});
+const surveyDocumentation = ref<DocumentationApiPayload[]>([]);
+// True once the itemised assessment (damage, loss, photos) is available.
+const hasDetail = ref(false);
+
+function applySurveyData(data: any) {
+  Object.assign(surveyForm, {
+    disasterId: data.disasterId ?? 0,
+    sectorId: data.sectorId ?? 0,
+    surveyStatus: data.surveyStatus ?? "Pending",
+    provinceId: data.provinceId ?? "",
+    regencyId: data.regencyId ?? "",
+    districtId: data.districtId ?? "",
+    villageId: data.villageId ?? "",
+    addressDetail: data.addressDetail ?? "",
+    authority: data.authority ?? "KabupatenKota",
+    assetName: data.assetName ?? "",
+    nik: data.nik ?? "",
+    latitude: data.latitude ?? "",
+    longitude: data.longitude ?? "",
+    volume: data.volume ?? "",
+    volumeUnit: data.volumeUnit ?? "m2",
+    surveyFolderPath: data.surveyFolderPath ?? "",
+    totalPriceUnit: data.totalPriceUnit ? Number(data.totalPriceUnit) : 0,
+    totalPriceFurniture: data.totalPriceFurniture
+      ? Number(data.totalPriceFurniture)
+      : 0,
+    furnitureDetails: Array.isArray(data.furnitureDetails)
+      ? data.furnitureDetails.map((item: any) => ({
+          ...item,
+          quantity: Number(item.quantity) || 0,
+          unitPrice: Number(item.unitPrice) || 0,
+          totalPrice: Number(item.totalPrice) || 0,
+        }))
+      : [],
+    housingDetails: Array.isArray(data.housingDetails)
+      ? data.housingDetails
+      : [],
+    lostDetails: Array.isArray(data.lostDetails) ? data.lostDetails : [],
+  });
+}
+
+// The lookup supplies the survey itself; the itemised assessment comes from the survey detail when it is readable.
+async function loadSurveyDetail(found: ComplainSurveyLookup) {
+  applySurveyData(found);
+  surveyDocumentation.value = [];
+  hasDetail.value = false;
+  try {
+    const res = await fetchSurvey(found.surveyId);
+    const data = (res as any)?.data ?? res;
+    applySurveyData(data);
+    surveyDocumentation.value = Array.isArray(data.fileDetails)
+      ? data.fileDetails
+      : Array.isArray(data.files)
+        ? data.files
+        : [];
+    hasDetail.value = true;
+  } catch {
+    // The lookup data alone is still enough to show the survey.
+  }
+}
 
 function onNikInput(event: Event) {
   const input = event.target as HTMLInputElement;
@@ -146,7 +216,9 @@ async function searchNik() {
   survey.value = null;
   errors.nik = undefined;
   try {
-    survey.value = await searchPendingSurveyByNik(nik);
+    const found = await searchPendingSurveyByNik(nik);
+    await loadSurveyDetail(found);
+    survey.value = found;
     return true;
   } catch (error) {
     errors.nik = lookupErrorMessage(error);
@@ -467,33 +539,34 @@ async function handleSubmit() {
               </div>
             </div>
 
-            <!-- STEP 2: DATA SURVEI (read-only) -->
-            <div
-              v-show="currentStep === 2"
-              class="bg-card space-y-4 rounded-xl border p-5"
-            >
-              <div class="border-b pb-2">
-                <h2 class="text-base font-semibold">Data Survei</h2>
-              </div>
+            <!-- STEP 2: DATA SURVEI (read-only, same layout as the survey detail page) -->
+            <div v-if="surveyReady && currentStep === 2" class="space-y-6">
               <p class="text-muted-foreground text-xs">
-                Komplain diajukan untuk survei Pending terbaru dari NIK ini.
+                Komplain diajukan untuk survei Pending terbaru dari NIK ini (ID
+                survei {{ survey?.surveyId }}).
               </p>
-              <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div
-                  v-for="f in surveyFields"
-                  :key="f.label"
-                  :class="{ 'md:col-span-2': f.label === 'Alamat' }"
-                >
-                  <label class="text-foreground text-xs font-medium">
-                    {{ f.label }}
-                  </label>
-                  <Input
-                    :model-value="f.value"
-                    disabled
-                    class="mt-1 h-9 text-sm md:text-sm"
-                  />
-                </div>
-              </div>
+              <SurveyResidentData
+                :form="surveyForm"
+                :errors="surveyErrors"
+                :is-detail-mode="true"
+                :is-create-mode="false"
+              />
+              <template v-if="hasDetail">
+                <SurveyDamageAssessment
+                  :form="surveyForm"
+                  :errors="surveyErrors"
+                  :is-detail-mode="true"
+                />
+                <SurveyLossAssessment
+                  :form="surveyForm"
+                  :is-detail-mode="true"
+                />
+                <SurveyUploadImage
+                  v-model="surveyDocumentation"
+                  :folder-path="surveyForm.surveyFolderPath"
+                  :is-detail-mode="true"
+                />
+              </template>
             </div>
 
             <!-- STEP 3: ISI KOMPLAIN -->

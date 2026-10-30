@@ -1,4 +1,5 @@
 import { listUrl, request } from "@/lib/http";
+import type { SurveyItem } from "@/services/survey/survey";
 
 export type ComplainStatus = "Pending" | "OnProgress" | "Completed";
 export type ComplainAction = "Resolved" | "Rejected";
@@ -118,19 +119,12 @@ export async function fetchComplains(
   };
 }
 
-// Minimal survey data returned by the public NIK lookup.
-export interface ComplainSurveyLookup {
-  surveyId: number;
-  nik: string;
-  assetName: string;
-  addressDetail: string;
-  surveyStatus: string;
-  provinceName?: string | null;
-  regencyName?: string | null;
-  districtName?: string | null;
-  villageName?: string | null;
-  createdAt: string;
-}
+// The public NIK lookup returns the latest Pending survey in the survey list shape, plus the surveyor and disaster.
+export type ComplainSurveyLookup = SurveyItem & {
+  surveyorId?: number;
+  surveyor?: { nama: string; nip: string; phoneNumber: string } | null;
+  disaster?: Record<string, unknown> | null;
+};
 
 // The NIK goes in the body (not the URL) so it stays out of access logs; the API allows 5 lookups a minute.
 export function searchPendingSurveyByNik(nik: string) {
