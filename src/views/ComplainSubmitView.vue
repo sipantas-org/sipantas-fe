@@ -35,7 +35,7 @@ const router = useRouter();
 
 const steps = [
   { step: 1, title: "Data Pelapor", desc: "Cari berdasarkan NIK" },
-  { step: 2, title: "Data Survei", desc: "Survei Pending dari NIK ini" },
+  { step: 2, title: "Data Survei", desc: "Data Survei" },
   { step: 3, title: "Isi Komplain", desc: "Uraian dan bukti pendukung" },
 ];
 
@@ -363,9 +363,6 @@ async function handleSubmit() {
           </p>
         </div>
         <div class="flex flex-col gap-2 sm:flex-row">
-          <Button variant="outline" @click="resetForm">
-            Ajukan komplain lain
-          </Button>
           <Button @click="goHome">Kembali ke Beranda</Button>
         </div>
       </div>
@@ -432,13 +429,13 @@ async function handleSubmit() {
                 </label>
                 <div class="mt-1 flex gap-2 md:max-w-md">
                   <Input
+                    class="w-full border rounded-lg p-2.5 bg-background focus:ring-2 focus:ring-primary focus:outline-none h-9 text-sm md:text-sm"
                     id="complain-nik"
                     :model-value="form.nik"
                     inputmode="numeric"
                     maxlength="16"
                     autocomplete="off"
                     placeholder="16 digit NIK"
-                    class="h-9 text-sm md:text-sm"
                     :aria-invalid="!!errors.nik"
                     :disabled="searching"
                     @input="onNikInput"
@@ -459,9 +456,6 @@ async function handleSubmit() {
                     Cari
                   </Button>
                 </div>
-                <p class="text-muted-foreground mt-1 text-xs">
-                  Gunakan NIK yang tercatat pada survei Anda.
-                </p>
                 <p v-if="errors.nik" class="text-destructive mt-1 text-xs">
                   {{ errors.nik }}
                 </p>
@@ -479,7 +473,7 @@ async function handleSubmit() {
                     id="complain-name"
                     v-model="form.complainantName"
                     autocomplete="name"
-                    class="mt-1 h-9 text-sm md:text-sm"
+                    class="w-full border rounded-lg p-2.5 bg-background focus:ring-2 focus:ring-primary focus:outline-none h-9 text-sm md:text-sm"
                     :aria-invalid="!!errors.complainantName"
                   />
                   <p
@@ -502,7 +496,7 @@ async function handleSubmit() {
                     type="tel"
                     autocomplete="tel"
                     placeholder="08123456789"
-                    class="mt-1 h-9 text-sm md:text-sm"
+                    class="w-full border rounded-lg p-2.5 bg-background focus:ring-2 focus:ring-primary focus:outline-none h-9 text-sm md:text-sm"
                     :aria-invalid="!!errors.complainantPhone"
                   />
                   <p
@@ -589,7 +583,7 @@ async function handleSubmit() {
                   v-model="form.description"
                   rows="6"
                   placeholder="Jelaskan bagian survei yang menurut Anda tidak sesuai."
-                  class="mt-1 text-sm md:text-sm"
+                  class="w-full border rounded-lg p-2.5 bg-background focus:ring-2 focus:ring-primary focus:outline-none h-9 text-sm md:text-sm"
                   :aria-invalid="!!errors.description"
                 />
                 <p

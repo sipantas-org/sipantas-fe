@@ -97,10 +97,7 @@ const steps = [
 <template>
   <div class="bg-background text-foreground flex min-h-svh flex-col">
     <!-- Stays in the top-right corner while scrolling; signed-in users do not file complaints. -->
-    <div
-      v-if="!loggedIn"
-      class="fixed top-4 right-4 z-50 sm:top-6 sm:right-6"
-    >
+    <div v-if="!loggedIn" class="fixed top-4 right-4 z-50 sm:top-6 sm:right-6">
       <Button
         as-child
         class="h-10 bg-black px-4 text-sm text-white ring-1 ring-white/40 hover:bg-black/90 dark:bg-white dark:text-black dark:ring-0 dark:hover:bg-white/90"
@@ -117,7 +114,7 @@ const steps = [
         class="relative isolate flex min-h-svh flex-col items-center overflow-hidden"
       >
         <img
-          src="/images/kebakaran-hutan.jpg"
+          src="/images/pembangunan-huntap.jpg"
           alt=""
           class="absolute inset-0 -z-10 size-full object-cover"
         />
@@ -136,9 +133,9 @@ const steps = [
             </h2>
           </div>
           <p class="text-base text-pretty text-white/80 sm:text-lg">
-            Sistem Aplikasi untuk membantu surveyor dalam mencatat bencana, mensurvei
-            lokasi terdampak, menilai kerusakan rumah dan kerugian, serta
-            memantau tindak lanjutnya.
+            Sistem Aplikasi untuk membantu surveyor dalam mencatat bencana,
+            mensurvei lokasi terdampak, menilai kerusakan rumah dan kerugian,
+            serta memantau tindak lanjutnya.
           </p>
           <div class="flex flex-col gap-3 sm:flex-row">
             <Button v-if="loggedIn" as-child class="h-11 px-6 text-sm">
@@ -146,26 +143,7 @@ const steps = [
                 Buka dashboard
               </RouterLink>
             </Button>
-            <template v-else>
-              <!-- Each button uses its role's theme colour (admin: violet, surveyor: teal). -->
-              <Button as-child class="h-11 px-6 text-sm">
-                <RouterLink to="/login/admin">
-                  Masuk sebagai Admin
-                </RouterLink>
-              </Button>
-              <Button as-child data-theme="surveyor" class="h-11 px-6 text-sm">
-                <RouterLink to="/login/surveyor">
-                  Masuk sebagai Surveyor
-                </RouterLink>
-              </Button>
-            </template>
           </div>
-          <p v-if="!loggedIn" class="text-sm text-white/80">
-            <span class="mr-1">Belum punya akun surveyor?</span>
-            <RouterLink to="/register" class="font-medium text-white underline">
-              Daftar di sini
-            </RouterLink>
-          </p>
         </div>
       </section>
 
@@ -202,19 +180,21 @@ const steps = [
             Empat tahap dari kejadian bencana hingga pembangunan kembali.
           </p>
         </div>
-        <ol class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <ol class="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
           <li
             v-for="(s, i) in steps"
             :key="s.title"
-            class="flex flex-col gap-3"
+            class="bg-card/50 flex items-start gap-4 rounded-xl border p-4 sm:flex-col sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0"
           >
             <span
-              class="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-full text-sm font-semibold"
+              class="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
             >
               {{ i + 1 }}
             </span>
-            <h3 class="text-base font-semibold">{{ s.title }}</h3>
-            <p class="text-muted-foreground text-sm">{{ s.text }}</p>
+            <div class="flex flex-col gap-1">
+              <h3 class="text-base font-semibold">{{ s.title }}</h3>
+              <p class="text-muted-foreground text-sm">{{ s.text }}</p>
+            </div>
           </li>
         </ol>
       </section>
@@ -223,9 +203,7 @@ const steps = [
         <div class="mx-auto w-full max-w-6xl px-4 py-16">
           <div class="mb-10 flex flex-col gap-2 text-center">
             <h2 class="text-2xl font-semibold">Berita bencana terkini</h2>
-            <p class="text-muted-foreground text-sm">
-              Kabar terbaru hari ini
-            </p>
+            <p class="text-muted-foreground text-sm">Kabar terbaru hari ini</p>
           </div>
 
           <div
@@ -270,7 +248,10 @@ const steps = [
                   <h3 class="line-clamp-3 text-base font-semibold">
                     {{ item.title }}
                   </h3>
-                  <p v-if="item.summary" class="text-muted-foreground line-clamp-2">
+                  <p
+                    v-if="item.summary"
+                    class="text-muted-foreground line-clamp-2"
+                  >
                     {{ item.summary }}
                   </p>
                 </CardContent>
@@ -322,9 +303,32 @@ const steps = [
 
     <footer class="border-t">
       <div
-        class="text-muted-foreground mx-auto flex h-16 w-full max-w-6xl items-center justify-center px-4 text-sm"
+        class="text-muted-foreground mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 text-sm sm:h-16 sm:flex-row sm:py-0"
       >
-        &copy; {{ year }} SIPANTAS. Hak cipta dilindungi.
+        <p>&copy; {{ year }} SIPANTAS. Hak cipta dilindungi.</p>
+        <div v-if="!loggedIn" class="flex flex-wrap items-center gap-3 text-xs">
+          <span class="text-muted-foreground/60">Akses Petugas:</span>
+          <RouterLink
+            to="/login/surveyor"
+            class="hover:text-foreground underline-offset-4 hover:underline"
+          >
+            Surveyor
+          </RouterLink>
+          <span class="text-muted-foreground/40">&bull;</span>
+          <RouterLink
+            to="/login/admin"
+            class="hover:text-foreground underline-offset-4 hover:underline"
+          >
+            Admin
+          </RouterLink>
+          <span class="text-muted-foreground/40">&bull;</span>
+          <RouterLink
+            to="/register"
+            class="hover:text-foreground underline-offset-4 hover:underline"
+          >
+            Daftar Surveyor
+          </RouterLink>
+        </div>
       </div>
     </footer>
   </div>
