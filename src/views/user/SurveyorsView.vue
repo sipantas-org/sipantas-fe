@@ -43,7 +43,7 @@ const STATUS_META: Record<
   SurveyorStatus,
   { label: string; variant: NonNullable<BadgeVariants["variant"]> }
 > = {
-  Pending: { label: "Menunggu", variant: "secondary" },
+  Pending: { label: "Menunggu Approval", variant: "secondary" },
   Active: { label: "Aktif", variant: "default" },
   Inactive: { label: "Nonaktif", variant: "outline" },
   Rejected: { label: "Ditolak", variant: "destructive" },
