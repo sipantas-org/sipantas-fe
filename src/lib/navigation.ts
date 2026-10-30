@@ -55,8 +55,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
     roles: ["admin"],
     administratorOnly: true,
     children: [
-      { label: "Assessmen Kerugian", to: "/assessment/loss" },
-      { label: "Assessmen Kerusakan Rumah", to: "/assessment/house-damage" },
+      { label: "Penilaian Kerugian", to: "/assessment/loss" },
+      { label: "Kerusakan Rumah", to: "/assessment/house-damage" },
     ],
   },
   {
