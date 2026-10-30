@@ -21,6 +21,8 @@ export const useAdminStore = defineStore("admin", () => {
 
   const appliedFilters = reactive({
     status: "all" as AdminStatus | "all",
+    nip: "",
+    nama: "",
   });
 
   // Only the latest request may update the table.
@@ -34,6 +36,8 @@ export const useAdminStore = defineStore("admin", () => {
       const result = await fetchAdmins({
         status:
           appliedFilters.status === "all" ? undefined : appliedFilters.status,
+        nip: appliedFilters.nip || undefined,
+        nama: appliedFilters.nama || undefined,
         page: page.value,
         limit: limit.value,
       });
@@ -70,8 +74,14 @@ export const useAdminStore = defineStore("admin", () => {
     await fetchAdminsList();
   }
 
-  function applyFilters(filters: { status: AdminStatus | "all" }) {
+  function applyFilters(filters: {
+    status: AdminStatus | "all";
+    nip?: string;
+    nama?: string;
+  }) {
     appliedFilters.status = filters.status;
+    appliedFilters.nip = filters.nip ? filters.nip.trim() : "";
+    appliedFilters.nama = filters.nama ? filters.nama.trim() : "";
 
     if (page.value !== 1) {
       page.value = 1;
@@ -81,7 +91,7 @@ export const useAdminStore = defineStore("admin", () => {
   }
 
   function resetFilters() {
-    applyFilters({ status: "all" });
+    applyFilters({ status: "all", nip: "", nama: "" });
   }
 
   watch(page, fetchAdminsList);

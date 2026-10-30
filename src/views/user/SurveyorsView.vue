@@ -55,10 +55,24 @@ const { items, total, loading, loadError, page, limit, appliedFilters } =
   storeToRefs(surveyorStore);
 
 let filterValues = reactive({
+  nip: appliedFilters.value.nip,
+  nama: appliedFilters.value.nama,
   status: appliedFilters.value.status as SurveyorStatus | "all",
 });
 
 const filterFields = computed<FilterField[]>(() => [
+  {
+    key: "nama",
+    label: "Nama",
+    type: "text",
+    placeholder: "Cari nama",
+  },
+  {
+    key: "nip",
+    label: "NIP",
+    type: "text",
+    placeholder: "Cari NIP",
+  },
   {
     key: "status",
     label: "Status",
@@ -85,9 +99,11 @@ const columns: Column<SurveyorListItem>[] = [
 ];
 
 const emptyMessage = computed(() =>
-  appliedFilters.value.status === "all"
+  appliedFilters.value.status === "all" &&
+  !appliedFilters.value.nip &&
+  !appliedFilters.value.nama
     ? "Belum ada surveyor."
-    : "Tidak ada surveyor dengan status ini.",
+    : "Tidak ada surveyor yang sesuai dengan filter pencarian.",
 );
 
 function errorMessage(error: unknown, fallback: string) {
@@ -97,11 +113,17 @@ function errorMessage(error: unknown, fallback: string) {
 onMounted(surveyorStore.fetchSurveyorsList);
 
 function applyFilters() {
-  surveyorStore.applyFilters({ status: filterValues.status });
+  surveyorStore.applyFilters({
+    status: filterValues.status,
+    nip: filterValues.nip,
+    nama: filterValues.nama,
+  });
 }
 
 function resetFilters() {
   filterValues.status = "all";
+  filterValues.nip = "";
+  filterValues.nama = "";
   surveyorStore.resetFilters();
 }
 

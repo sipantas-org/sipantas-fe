@@ -21,6 +21,8 @@ export const useSurveyorStore = defineStore("surveyor", () => {
 
   const appliedFilters = reactive({
     status: "all" as SurveyorStatus | "all",
+    nip: "",
+    nama: "",
   });
 
   // Only the latest request may update the table.
@@ -34,6 +36,8 @@ export const useSurveyorStore = defineStore("surveyor", () => {
       const result = await fetchSurveyors({
         status:
           appliedFilters.status === "all" ? undefined : appliedFilters.status,
+        nip: appliedFilters.nip || undefined,
+        nama: appliedFilters.nama || undefined,
         page: page.value,
         limit: limit.value,
       });
@@ -73,8 +77,14 @@ export const useSurveyorStore = defineStore("surveyor", () => {
     await fetchSurveyorsList();
   }
 
-  function applyFilters(filters: { status: SurveyorStatus | "all" }) {
+  function applyFilters(filters: {
+    status: SurveyorStatus | "all";
+    nip?: string;
+    nama?: string;
+  }) {
     appliedFilters.status = filters.status;
+    appliedFilters.nip = filters.nip ? filters.nip.trim() : "";
+    appliedFilters.nama = filters.nama ? filters.nama.trim() : "";
 
     if (page.value !== 1) {
       page.value = 1;
@@ -84,7 +94,7 @@ export const useSurveyorStore = defineStore("surveyor", () => {
   }
 
   function resetFilters() {
-    applyFilters({ status: "all" });
+    applyFilters({ status: "all", nip: "", nama: "" });
   }
 
   watch(page, fetchSurveyorsList);

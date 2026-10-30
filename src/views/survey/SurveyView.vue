@@ -364,11 +364,11 @@ let columns: Column<SurveyItem>[] = [
   { key: "nik", label: "NIK", sortable: true },
   { key: "assetName", label: "Nama Aset", sortable: true },
   { key: "region", label: "Wilayah" },
+  { key: "disaster", label: "Bencana" },
 ];
 
 if (authStore.role == "admin") {
   columns.push({ key: "surveyor", label: "Surveyor" });
-  columns.push({ key: "disaster", label: "Bencana" });
 }
 
 let extracolumns: Column<SurveyItem>[] = [

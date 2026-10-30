@@ -6,6 +6,8 @@ export type ApprovalDecision = "Approved" | "Rejected";
 
 export interface SurveyorQuery {
   status?: SurveyorStatus;
+  nip?: string;
+  nama?: string;
   page: number;
   limit: number;
 }
