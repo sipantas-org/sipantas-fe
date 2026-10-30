@@ -42,6 +42,8 @@ import type {
   ComplainStatus,
   UpdateComplainStatusPayload,
 } from "@/services/complain/complain";
+import { useAuthStore } from "@/stores/auth";
+const auth = useAuthStore();
 const IMAGE_FILE_PATH = import.meta.env.VITE_IMAGE_FILE_PATH ?? "";
 
 const STATUS_META: Record<
@@ -206,7 +208,7 @@ function formatDate(dateStr?: string | null) {
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2" v-if="auth?.role === 'surveyor'">
         <Button
           v-if="complain?.status == 'Pending'"
           class="h-9 text-sm"
