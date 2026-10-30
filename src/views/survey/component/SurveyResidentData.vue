@@ -4,11 +4,12 @@ import { useRoute, useRouter } from "vue-router";
 import { toast } from "vue-sonner";
 import { RiLoader4Line } from "@remixicon/vue";
 import { useAuthStore } from "@/stores/auth";
-import { fetchDisasters } from "@/services/master/disaster";
 import { useDisasterStore } from "@/stores/disaster";
 import ComboboxSelect from "@/components/ComboboxSelect.vue";
 import MapCoordinatePicker from "./MapCoordinatePicker.vue";
 import {
+  disasterLoader,
+  disasterResolver,
   districtLoader,
   districtResolver,
   provinceLoader,
@@ -17,7 +18,7 @@ import {
   regencyResolver,
   villageLoader,
   villageResolver,
-} from "@/lib/area-options";
+} from "@/lib/combobox-options.ts";
 import type { CreateSurveyPayload } from "@/services/survey/survey";
 
 const props = defineProps<{
@@ -66,85 +67,6 @@ async function loadDisasterDetail(disasterId: number) {
   } finally {
     loadingDisaster.value = false;
   }
-}
-
-// // Filter hanya bencana yang berstatus "Active"
-// const activeDisasters = computed(() => {
-//   return disasterStore.items.filter(
-//     (item: any) => (item.disasterStatus ?? item.status) === "Active",
-//   );
-// });
-
-async function disasterLoader({
-  search,
-  page,
-  limit,
-}: {
-  search?: string;
-  page?: number;
-  limit?: number;
-}) {
-  try {
-    const res = await fetchDisasters({
-      status: "Active",
-      disasterName: search?.trim() || undefined,
-      page: page ?? 1,
-      limit: limit ?? 20,
-    });
-    const items =
-      (res as any)?.items ??
-      (Array.isArray((res as any)?.data) ? (res as any).data : []);
-    const total =
-      (res as any)?.total ?? (res as any)?.pagination?.total ?? items.length;
-    return {
-      items: items.map((item: any) => ({
-        value: String(item.disasterId),
-        label: `${item.disasterName} (${item.disasterCode})`,
-      })),
-      total,
-    };
-  } catch (error) {
-    console.error("Gagal memuat opsi bencana:", error);
-    return {
-      items: [],
-      total: 0,
-    };
-  }
-}
-
-async function disasterResolver(val: string) {
-  if (!val || Number(val) === 0) return undefined;
-  const id = Number(val);
-  const strVal = String(val);
-  const fromList = disasterStore.items.find(
-    (d: any) => Number(d.disasterId) === id,
-  );
-  if (fromList) {
-    return {
-      value: strVal,
-      label: `${fromList.disasterName} (${fromList.disasterCode})`,
-    };
-  }
-  if (detailDisaster.value && Number(detailDisaster.value.disasterId) === id) {
-    return {
-      value: strVal,
-      label: `${detailDisaster.value.disasterName} (${detailDisaster.value.disasterCode})`,
-    };
-  }
-  try {
-    const res = await disasterStore.fetchDisaster(id);
-    const data = (res as any)?.data ?? res;
-    if (data) {
-      detailDisaster.value = data;
-      return {
-        value: strVal,
-        label: `${data.disasterName} (${data.disasterCode})`,
-      };
-    }
-  } catch (error) {
-    console.error("Gagal memuat label bencana:", error);
-  }
-  return undefined;
 }
 
 function onDisasterChange(val: any) {

@@ -37,7 +37,7 @@ import {
   provinceResolver,
   regencyLoader,
   regencyResolver,
-} from "@/lib/area-options";
+} from "@/lib/combobox-options";
 import { ApiError } from "@/lib/http";
 import { useAreaNamesStore } from "@/stores/area-names";
 import { useVillageStore } from "@/stores/village";

@@ -1,8 +1,56 @@
 import type { ComboLoader, ComboResolver } from "@/lib/combobox";
+import { fetchDisaster, fetchDisasters } from "@/services/master/disaster";
 import { fetchDistrict, fetchDistrictPage } from "@/services/master/district";
 import { fetchProvince, fetchProvincePage } from "@/services/master/province";
 import { fetchRegency, fetchRegencyPage } from "@/services/master/regency";
 import { fetchVillage, fetchVillagePage } from "@/services/master/village";
+
+export const disasterLoader: ComboLoader = async ({ search, page, limit }) => {
+  try {
+    const res = await fetchDisasters({
+      status: "Active",
+      disasterName: search?.trim() || undefined,
+      page: page ?? 1,
+      limit: limit ?? 20,
+    });
+    const items =
+      (res as any)?.items ??
+      (Array.isArray((res as any)?.data) ? (res as any).data : []);
+    const total =
+      (res as any)?.total ?? (res as any)?.pagination?.total ?? items.length;
+    return {
+      items: items.map((item: any) => ({
+        value: String(item.disasterId),
+        label: `${item.disasterName} (${item.disasterCode})`,
+      })),
+      total,
+    };
+  } catch (error) {
+    console.error("Gagal memuat opsi bencana:", error);
+    return {
+      items: [],
+      total: 0,
+    };
+  }
+};
+
+export const disasterResolver: ComboResolver = async (val) => {
+  if (!val || Number(val) === 0) return undefined;
+  const id = Number(val);
+  try {
+    const res = await fetchDisaster(id);
+    const data = (res as any)?.data ?? res;
+    if (data) {
+      return {
+        value: String(data.disasterId ?? val),
+        label: `${data.disasterName} (${data.disasterCode})`,
+      };
+    }
+  } catch (error) {
+    console.error("Gagal memuat label bencana:", error);
+  }
+  return undefined;
+};
 
 // Combobox loaders for the area dropdowns. The server pages and searches by name.
 
