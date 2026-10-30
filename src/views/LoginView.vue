@@ -147,6 +147,13 @@ async function onSubmit() {
           <RiLoader4Line v-if="loading" class="animate-spin" />
           {{ loading ? "Memproses..." : "Masuk" }}
         </Button>
+
+        <RouterLink
+          to="/"
+          class="text-muted-foreground hover:text-foreground text-center text-sm underline-offset-4 hover:underline"
+        >
+          Kembali ke beranda
+        </RouterLink>
       </FieldGroup>
     </form>
 

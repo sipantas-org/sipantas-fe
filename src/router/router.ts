@@ -10,6 +10,8 @@ declare module "vue-router" {
     requiresAuth?: boolean;
     roles?: readonly Role[];
     administratorOnly?: boolean;
+    // Only for visitors; signed-in users are sent to the dashboard.
+    guestOnly?: boolean;
   }
 }
 
@@ -31,9 +33,19 @@ const router = createRouter({
     },
     {
       path: "/",
+      name: "landing",
+      component: () => import("@/views/LandingView.vue"),
+    },
+    {
+      path: "/ajukan-komplain",
+      name: "complain-submit",
+      component: () => import("@/views/ComplainSubmitView.vue"),
+      meta: { guestOnly: true },
+    },
+    {
+      path: "/",
       component: () => import("@/layouts/AppLayout.vue"),
       meta: { requiresAuth: true },
-      redirect: { name: "dashboard" },
       children: [
         {
           path: "dashboard",
@@ -230,14 +242,16 @@ router.beforeEach((to) => {
   if ((to.name === "login" || to.name === "register") && auth.role)
     return { name: "dashboard" };
 
+  if (to.meta.guestOnly && auth.role) return { name: "dashboard" };
+
   if (to.meta.roles && auth.role && !to.meta.roles.includes(auth.role))
     return { name: "dashboard" };
 
   if (to.meta.administratorOnly && auth.isMonitoring)
     return { name: "dashboard" };
 
-  const role =
-    to.params.role ?? to.meta.role ?? (to.meta.requiresAuth ? auth.role : null);
+  // Login and register pages use their own role; everywhere else a signed-in user's role applies, and visitors get the admin (default) theme.
+  const role = to.params.role ?? to.meta.role ?? auth.role;
   applyTheme(typeof role === "string" && isRole(role) ? role : null);
 });
 
