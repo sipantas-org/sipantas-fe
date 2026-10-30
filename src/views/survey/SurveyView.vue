@@ -511,7 +511,10 @@ columns = [...columns, ...extracolumns];
               <RiCheckboxCircleLine /> Perbarui Status
             </DropdownMenuItem>
             <DropdownMenuItem
-              v-if="item.surveyStatus === 'Pending'"
+              v-if="
+                item.surveyStatus === 'Pending' ||
+                item.surveyStatus === 'OnVerification'
+              "
               class="h-9 text-sm"
               @select="goToEdit(item)"
             >
