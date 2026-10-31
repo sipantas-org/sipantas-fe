@@ -1,5 +1,4 @@
 import { listUrl, request } from "@/lib/http";
-import type { SurveyItem } from "@/services/survey/survey";
 
 export type ComplainStatus = "Pending" | "OnProgress" | "Completed";
 export type ComplainAction = "Resolved" | "Rejected";
@@ -119,12 +118,41 @@ export async function fetchComplains(
   };
 }
 
-// The public NIK lookup returns the latest Pending survey in the survey list shape, plus the surveyor and disaster.
-export type ComplainSurveyLookup = SurveyItem & {
-  surveyorId?: number;
-  surveyor?: { nama: string; nip: string; phoneNumber: string } | null;
-  disaster?: Record<string, unknown> | null;
-};
+interface LookupArea {
+  id: string;
+  name: string;
+}
+
+// Survey data returned by the public NIK lookup (no surveyor or price data).
+export interface ComplainSurveyLookup {
+  surveyId: number;
+  surveyStatus: string;
+  nik: string;
+  assetName: string;
+  addressDetail: string;
+  authority: string;
+  latitude: string;
+  longitude: string;
+  damageLevel: string;
+  volume: string;
+  volumeUnit: string;
+  disasterId: number;
+  provinceId: string | null;
+  regencyId: string | null;
+  districtId: string | null;
+  villageId: string | null;
+  province: LookupArea | null;
+  regency: LookupArea | null;
+  district: LookupArea | null;
+  village: LookupArea | null;
+  housingDetails: {
+    housingDamageAssessmentId: number;
+    totalUnit: number;
+    score: number;
+  }[];
+  fileDetails: { category: string; filePath: string; fileName: string }[];
+  createdAt: string;
+}
 
 // The NIK goes in the body (not the URL) so it stays out of access logs; the API allows 5 lookups a minute.
 export function searchPendingSurveyByNik(nik: string) {

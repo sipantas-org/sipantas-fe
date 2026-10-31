@@ -19,13 +19,11 @@ import {
   searchPendingSurveyByNik,
   type ComplainSurveyLookup,
 } from "@/services/complain/complain";
-import {
-  fetchSurvey,
-  type CreateSurveyPayload,
-  type SurveyAuthority,
+import type {
+  CreateSurveyPayload,
+  SurveyAuthority,
 } from "@/services/survey/survey";
 import SurveyDamageAssessment from "@/views/survey/component/SurveyDamageAssessment.vue";
-import SurveyLossAssessment from "@/views/survey/component/SurveyLossAssessment.vue";
 import SurveyResidentData from "@/views/survey/component/SurveyResidentData.vue";
 import SurveyUploadImage, {
   type DocumentationApiPayload,
@@ -123,64 +121,26 @@ const surveyForm = reactive<CreateSurveyPayload>({
 });
 const surveyErrors = reactive<Record<string, string>>({});
 const surveyDocumentation = ref<DocumentationApiPayload[]>([]);
-// True once the itemised assessment (damage, loss, photos) is available.
-const hasDetail = ref(false);
-
-function applySurveyData(data: any) {
+// The lookup already carries everything the read-only survey components show.
+function fillSurveyForm(found: ComplainSurveyLookup) {
   Object.assign(surveyForm, {
-    disasterId: data.disasterId ?? 0,
-    sectorId: data.sectorId ?? 0,
-    surveyStatus: data.surveyStatus ?? "Pending",
-    provinceId: data.provinceId ?? "",
-    regencyId: data.regencyId ?? "",
-    districtId: data.districtId ?? "",
-    villageId: data.villageId ?? "",
-    addressDetail: data.addressDetail ?? "",
-    authority: data.authority ?? "KabupatenKota",
-    assetName: data.assetName ?? "",
-    nik: data.nik ?? "",
-    latitude: data.latitude ?? "",
-    longitude: data.longitude ?? "",
-    volume: data.volume ?? "",
-    volumeUnit: data.volumeUnit ?? "m2",
-    surveyFolderPath: data.surveyFolderPath ?? "",
-    totalPriceUnit: data.totalPriceUnit ? Number(data.totalPriceUnit) : 0,
-    totalPriceFurniture: data.totalPriceFurniture
-      ? Number(data.totalPriceFurniture)
-      : 0,
-    furnitureDetails: Array.isArray(data.furnitureDetails)
-      ? data.furnitureDetails.map((item: any) => ({
-          ...item,
-          quantity: Number(item.quantity) || 0,
-          unitPrice: Number(item.unitPrice) || 0,
-          totalPrice: Number(item.totalPrice) || 0,
-        }))
-      : [],
-    housingDetails: Array.isArray(data.housingDetails)
-      ? data.housingDetails
-      : [],
-    lostDetails: Array.isArray(data.lostDetails) ? data.lostDetails : [],
+    disasterId: found.disasterId ?? 0,
+    surveyStatus: found.surveyStatus ?? "Pending",
+    provinceId: found.provinceId ?? "",
+    regencyId: found.regencyId ?? "",
+    districtId: found.districtId ?? "",
+    villageId: found.villageId ?? "",
+    addressDetail: found.addressDetail ?? "",
+    authority: found.authority ?? "KabupatenKota",
+    assetName: found.assetName ?? "",
+    nik: found.nik ?? "",
+    latitude: found.latitude ?? "",
+    longitude: found.longitude ?? "",
+    volume: found.volume ?? "",
+    volumeUnit: found.volumeUnit ?? "m2",
+    housingDetails: found.housingDetails ?? [],
   });
-}
-
-// The lookup supplies the survey itself; the itemised assessment comes from the survey detail when it is readable.
-async function loadSurveyDetail(found: ComplainSurveyLookup) {
-  applySurveyData(found);
-  surveyDocumentation.value = [];
-  hasDetail.value = false;
-  try {
-    const res = await fetchSurvey(found.surveyId);
-    const data = (res as any)?.data ?? res;
-    applySurveyData(data);
-    surveyDocumentation.value = Array.isArray(data.fileDetails)
-      ? data.fileDetails
-      : Array.isArray(data.files)
-        ? data.files
-        : [];
-    hasDetail.value = true;
-  } catch {
-    // The lookup data alone is still enough to show the survey.
-  }
+  surveyDocumentation.value = found.fileDetails ?? [];
 }
 
 function onNikInput(event: Event) {
@@ -217,7 +177,7 @@ async function searchNik() {
   errors.nik = undefined;
   try {
     const found = await searchPendingSurveyByNik(nik);
-    await loadSurveyDetail(found);
+    fillSurveyForm(found);
     survey.value = found;
     return true;
   } catch (error) {
@@ -531,22 +491,17 @@ async function handleSubmit() {
                 :is-detail-mode="true"
                 :is-create-mode="false"
               />
-              <template v-if="hasDetail">
-                <SurveyDamageAssessment
-                  :form="surveyForm"
-                  :errors="surveyErrors"
-                  :is-detail-mode="true"
-                />
-                <SurveyLossAssessment
-                  :form="surveyForm"
-                  :is-detail-mode="true"
-                />
-                <SurveyUploadImage
-                  v-model="surveyDocumentation"
-                  :folder-path="surveyForm.surveyFolderPath"
-                  :is-detail-mode="true"
-                />
-              </template>
+              <SurveyDamageAssessment
+                :form="surveyForm"
+                :errors="surveyErrors"
+                :is-detail-mode="true"
+                :hide-furniture="true"
+              />
+              <SurveyUploadImage
+                v-model="surveyDocumentation"
+                :folder-path="surveyForm.surveyFolderPath"
+                :is-detail-mode="true"
+              />
             </div>
 
             <!-- STEP 3: ISI KOMPLAIN -->

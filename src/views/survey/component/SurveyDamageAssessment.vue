@@ -30,6 +30,8 @@ const props = defineProps<{
   form: CreateSurveyPayload;
   errors: Record<string, string>;
   isDetailMode: boolean;
+  // Hides the furniture section (the public complaint page does not show it).
+  hideFurniture?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -503,7 +505,10 @@ function onFurniturePriceChange(item: SurveyFurnitureDetailPayload) {
     </div>
 
     <!-- Furniture Details -->
-    <div class="rounded-xl border p-4 sm:p-5 bg-card space-y-4">
+    <div
+      v-if="!hideFurniture"
+      class="rounded-xl border p-4 sm:p-5 bg-card space-y-4"
+    >
       <div
         class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-2"
       >
