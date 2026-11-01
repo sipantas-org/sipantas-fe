@@ -55,7 +55,7 @@ const {
   sortOrder,
 } = storeToRefs(complainStore);
 
-const filterValues = reactive({
+let filterValues = reactive({
   status: "all" as ComplainStatus | "all",
   nik: complainStore.appliedFilters.nik,
   complainantName: complainStore.appliedFilters.complainantName,
