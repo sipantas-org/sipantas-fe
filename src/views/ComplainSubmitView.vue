@@ -153,7 +153,7 @@ function onNikInput(event: Event) {
 function lookupErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
     if (error.status === 404) {
-      return "Tidak ada survei berstatus Pending untuk NIK ini.";
+      return "Mohon maaf anda masih memiliki komplain yang sedang dalam proses.";
     }
     if (error.status === 429) {
       return "Terlalu banyak percobaan pencarian. Coba lagi beberapa saat lagi.";

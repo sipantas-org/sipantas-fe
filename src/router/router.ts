@@ -163,6 +163,16 @@ const router = createRouter({
           },
         },
         {
+          path: "activity-history",
+          name: "activity-history",
+          component: () => import("@/views/activity/ActivityHistoryView.vue"),
+          meta: {
+            title: "Activity History",
+            roles: ["admin"],
+            administratorOnly: true,
+          },
+        },
+        {
           path: "survey",
           name: "survey-list",
           component: () => import("@/views/survey/SurveyView.vue"),
