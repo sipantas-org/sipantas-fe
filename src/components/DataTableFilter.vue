@@ -40,6 +40,8 @@ export interface FilterField {
   label: string;
   type: "text" | "select" | "month" | "date" | "date-range" | "combobox";
   placeholder?: string;
+  // text only: accept digits only.
+  numeric?: boolean;
   endPlaceholder?: string;
   options?: FilterOption[];
   class?: string;
@@ -70,6 +72,13 @@ const emit = defineEmits<{
 }>();
 
 const model = defineModel<Record<string, any>>({ required: true });
+
+function digitsOnly(field: FilterField, event: Event) {
+  const input = event.target as HTMLInputElement;
+  const clean = input.value.replace(/\D/g, "");
+  if (clean !== input.value) input.value = clean;
+  model.value[field.key] = clean;
+}
 
 function parseDateValue(dateStr?: string): DateValue | undefined {
   if (!dateStr || typeof dateStr !== "string" || !dateStr.trim())
@@ -146,7 +155,9 @@ function setFieldToday(field: FilterField) {
           v-model="model[field.key]"
           :type="field.type"
           :placeholder="field.placeholder"
+          :inputmode="field.numeric ? 'numeric' : undefined"
           class="h-9 w-full text-sm"
+          @input="field.numeric && digitsOnly(field, $event)"
           @keydown.enter="emit('filter')"
         />
 
