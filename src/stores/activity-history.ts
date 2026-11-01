@@ -23,6 +23,7 @@ export const useActivityHistoryStore = defineStore("activity-history", () => {
   const appliedFilters = reactive({
     name: "",
     userType: "" as ActivityUserType | "",
+    relationId: "",
     module: "",
     activity: "",
   });
@@ -38,6 +39,9 @@ export const useActivityHistoryStore = defineStore("activity-history", () => {
       const result = await fetchActivityHistoryPage({
         name: appliedFilters.name || undefined,
         userType: appliedFilters.userType || undefined,
+        relationId: appliedFilters.relationId
+          ? Number(appliedFilters.relationId)
+          : undefined,
         module: appliedFilters.module || undefined,
         activity: appliedFilters.activity || undefined,
         sortBy: sortBy.value,
@@ -70,11 +74,13 @@ export const useActivityHistoryStore = defineStore("activity-history", () => {
   function applyFilters(filters: {
     name: string;
     userType: ActivityUserType | "";
+    relationId: string;
     module: string;
     activity: string;
   }) {
     appliedFilters.name = filters.name.trim();
     appliedFilters.userType = filters.userType;
+    appliedFilters.relationId = filters.relationId.trim();
     appliedFilters.module = filters.module.trim();
     appliedFilters.activity = filters.activity.trim();
 
@@ -86,7 +92,13 @@ export const useActivityHistoryStore = defineStore("activity-history", () => {
   }
 
   function resetFilters() {
-    applyFilters({ name: "", userType: "", module: "", activity: "" });
+    applyFilters({
+      name: "",
+      userType: "",
+      relationId: "",
+      module: "",
+      activity: "",
+    });
   }
 
   watch(page, fetchActivityHistory);
