@@ -6,6 +6,7 @@ import {
   RiSurveyLine,
   RiSurveyFill,
   RiEmotionUnhappyLine,
+  RiHistoryLine,
 } from "@remixicon/vue";
 import type { Component } from "vue";
 import type { Role } from "@/lib/theme";
@@ -77,6 +78,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
       },
       { label: "Surveyor", to: "/user/surveyors" },
     ],
+  },
+  {
+    label: "Activity History",
+    to: "/activity-history",
+    icon: RiHistoryLine,
+    roles: ["admin"],
+    administratorOnly: true,
   },
   {
     label: "Complain",
