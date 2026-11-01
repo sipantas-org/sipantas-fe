@@ -23,6 +23,7 @@ export interface ActivityHistoryQuery extends Record<string, unknown> {
   module?: string;
   adminId?: number;
   userId?: number;
+  relationId?: number;
   activity?: string;
   name?: string;
   userType?: ActivityUserType;

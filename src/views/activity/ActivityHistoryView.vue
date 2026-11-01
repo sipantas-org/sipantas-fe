@@ -38,6 +38,7 @@ const {
 const filterValues = reactive({
   name: appliedFilters.value.name,
   userType: appliedFilters.value.userType || "all",
+  relationId: appliedFilters.value.relationId,
   module: appliedFilters.value.module,
   activity: appliedFilters.value.activity,
 });
@@ -45,19 +46,26 @@ const filterValues = reactive({
 const filterFields = computed<FilterField[]>(() => [
   {
     key: "name",
-    label: "Nama Pelaku",
+    label: "Nama User",
     type: "text",
     placeholder: "Masukkan nama...",
   },
   {
     key: "userType",
-    label: "Jenis Pelaku",
+    label: "Jenis User",
     type: "select",
     placeholder: "Semua jenis",
     options: [
       { label: "Semua jenis", value: "all" },
       ...USER_TYPES.map((t) => ({ label: USER_TYPE_META[t].label, value: t })),
     ],
+  },
+  {
+    key: "relationId",
+    label: "ID Relasi",
+    type: "text",
+    numeric: true,
+    placeholder: "Hanya angka",
   },
   {
     key: "module",
@@ -75,11 +83,11 @@ const filterFields = computed<FilterField[]>(() => [
 
 const columns: Column<ActivityHistoryItem>[] = [
   { key: "createdAt", label: "Waktu", sortable: true },
-  { key: "name", label: "Pelaku", sortable: true },
-  { key: "userType", label: "Jenis Pelaku", sortable: true },
+  { key: "userType", label: "Jenis User", sortable: true },
+  { key: "name", label: "Nama User", sortable: true },
+  { key: "relationId", label: "ID Relasi", sortable: true },
   { key: "module", label: "Modul", sortable: true },
   { key: "activity", label: "Aktivitas", sortable: true },
-  { key: "relationId", label: "ID Relasi" },
 ];
 
 onMounted(() => {
@@ -93,6 +101,7 @@ function applyFilters() {
       filterValues.userType === "all"
         ? ""
         : (filterValues.userType as ActivityUserType),
+    relationId: filterValues.relationId,
     module: filterValues.module,
     activity: filterValues.activity,
   });
@@ -101,6 +110,7 @@ function applyFilters() {
 function resetFilters() {
   filterValues.name = "";
   filterValues.userType = "all";
+  filterValues.relationId = "";
   filterValues.module = "";
   filterValues.activity = "";
   store.resetFilters();
