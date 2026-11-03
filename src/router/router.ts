@@ -54,40 +54,8 @@ const router = createRouter({
           meta: { title: "Dashboard" },
         },
         {
-          path: "master/bencana",
-          name: "master-bencana",
-          component: () => import("@/views/master-data/DisasterView.vue"),
-          meta: {
-            title: "Master Disaster",
-            roles: ["admin"],
-            administratorOnly: true,
-          },
-        },
-        {
-          path: "/assessment/loss",
-          name: "loss-assessment",
-          component: () => import("@/views/assessment/LossAssessmentView.vue"),
-          meta: {
-            title: "Master Disaster",
-            roles: ["admin"],
-            administratorOnly: true,
-          },
-        },
-        {
-          path: "/assessment/house-damage",
-          name: "house-damage-assessment",
-          component: () =>
-            import("@/views/assessment/HouseDamageAssessmentView.vue"),
-          meta: {
-            title: "Master Disaster",
-            roles: ["admin"],
-            administratorOnly: true,
-          },
-        },
-
-        {
-          path: "master/provinsi",
-          name: "master-provinsi",
+          path: "master-area/provinsi",
+          name: "master-area-provinsi",
           component: () => import("@/views/master-data/ProvinceView.vue"),
           meta: {
             title: "Provinsi",
@@ -97,8 +65,8 @@ const router = createRouter({
         },
 
         {
-          path: "master/kabupaten-kota",
-          name: "master-kabupaten-kota",
+          path: "master-area/kabupaten-kota",
+          name: "master-area-kabupaten-kota",
           component: () => import("@/views/master-data/RegencyView.vue"),
           meta: {
             title: "Kabupaten/Kota",
@@ -107,8 +75,8 @@ const router = createRouter({
           },
         },
         {
-          path: "master/kecamatan",
-          name: "master-kecamatan",
+          path: "master-area/kecamatan",
+          name: "master-area-kecamatan",
           component: () => import("@/views/master-data/DistrictView.vue"),
           meta: {
             title: "Kecamatan",
@@ -117,8 +85,8 @@ const router = createRouter({
           },
         },
         {
-          path: "master/desa",
-          name: "master-desa",
+          path: "master-area/desa",
+          name: "master-area-desa",
           component: () => import("@/views/master-data/VillageView.vue"),
           meta: {
             title: "Desa/Kelurahan",
@@ -127,18 +95,18 @@ const router = createRouter({
           },
         },
         {
-          path: "master/komponen-rumah",
-          name: "master-komponen-rumah",
-          component: () => import("@/views/master-data/HousingPartView.vue"),
+          path: "master-assessment/bencana",
+          name: "master-assessment-bencana",
+          component: () => import("@/views/master-data/DisasterView.vue"),
           meta: {
-            title: "Assessmen Komponen Rumah",
+            title: "Bencana",
             roles: ["admin"],
             administratorOnly: true,
           },
         },
         {
-          path: "master/sektor",
-          name: "master-sektor",
+          path: "master-assessment/sektor",
+          name: "master-assessment-sektor",
           component: () => import("@/views/master-data/SectorView.vue"),
           meta: {
             title: "Sektor",
@@ -147,27 +115,32 @@ const router = createRouter({
           },
         },
         {
-          path: "user/surveyors",
-          name: "surveyors",
-          component: () => import("@/views/user/SurveyorsView.vue"),
-          meta: { title: "Data Surveyor", roles: ["admin"] },
-        },
-        {
-          path: "user/admins",
-          name: "admins",
-          component: () => import("@/views/user/AdminsView.vue"),
+          path: "master-assessment/komponen-rumah",
+          name: "master-assessment-komponen-rumah",
+          component: () => import("@/views/master-data/HousingPartView.vue"),
           meta: {
-            title: "Admin Monitoring",
+            title: "Komponen Rumah",
             roles: ["admin"],
             administratorOnly: true,
           },
         },
         {
-          path: "activity-history",
-          name: "activity-history",
-          component: () => import("@/views/activity/ActivityHistoryView.vue"),
+          path: "master-assessment/loss",
+          name: "master-assessment-loss",
+          component: () => import("@/views/assessment/LossAssessmentView.vue"),
           meta: {
-            title: "Activity History",
+            title: "Penilaian Kerugian",
+            roles: ["admin"],
+            administratorOnly: true,
+          },
+        },
+        {
+          path: "master-assessment/house-damage",
+          name: "master-assessment-house-damage",
+          component: () =>
+            import("@/views/assessment/HouseDamageAssessmentView.vue"),
+          meta: {
+            title: "Kerusakan Rumah",
             roles: ["admin"],
             administratorOnly: true,
           },
@@ -208,6 +181,32 @@ const router = createRouter({
           props: (route) => ({ isEdit: false, id: route.params.id }),
           meta: {
             title: "Detail Survey",
+          },
+        },
+        {
+          path: "user/admins",
+          name: "admins",
+          component: () => import("@/views/user/AdminsView.vue"),
+          meta: {
+            title: "Admin Monitoring",
+            roles: ["admin"],
+            administratorOnly: true,
+          },
+        },
+        {
+          path: "user/surveyors",
+          name: "surveyors",
+          component: () => import("@/views/user/SurveyorsView.vue"),
+          meta: { title: "Data Surveyor", roles: ["admin"] },
+        },
+        {
+          path: "activity-history",
+          name: "activity-history",
+          component: () => import("@/views/activity/ActivityHistoryView.vue"),
+          meta: {
+            title: "Activity History",
+            roles: ["admin"],
+            administratorOnly: true,
           },
         },
         {

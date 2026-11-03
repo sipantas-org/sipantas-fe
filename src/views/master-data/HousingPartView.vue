@@ -228,7 +228,7 @@ async function submitDelete() {
       <div>
         <h1 class="text-xl font-semibold">Data Komponen Rumah</h1>
         <p class="text-muted-foreground text-sm">
-          Kelola komponen rumah yang dinilai pada assessmen kerusakan rumah.
+          Kelola komponen rumah yang dinilai pada penilaian kerusakan rumah.
         </p>
       </div>
       <Button class="h-10 text-sm" @click="openCreate">
