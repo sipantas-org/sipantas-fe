@@ -50,8 +50,8 @@ const page = computed(() => content[role.value]);
 const sessionExpired = computed(() => route.query.expired === "1");
 
 const form = reactive({
-  email: "surveyor.sipantas@gmail.com",
-  password: "password.sipantas123",
+  email: "",
+  password: "",
 });
 const errors = reactive<{ email?: string; password?: string; form?: string }>(
   {},
