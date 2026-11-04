@@ -7,9 +7,18 @@ import {
   RiSearchLine,
   RiSendPlaneLine,
 } from "@remixicon/vue";
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
+import { toast } from "vue-sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/http";
@@ -48,6 +57,7 @@ const LAST_STEP = steps.length;
 const currentStep = ref(1);
 const searching = ref(false);
 const submitting = ref(false);
+const confirmDialogOpen = ref(false);
 const submitted = ref(false);
 
 const form = reactive({
@@ -57,7 +67,9 @@ const form = reactive({
   description: "",
 });
 type FormKey = keyof typeof form;
-const errors = reactive<Partial<Record<FormKey | "form", string>>>({});
+const errors = reactive<Partial<Record<FormKey | "form" | "evidence", string>>>(
+  {},
+);
 
 // The latest Pending survey registered under the entered NIK; it supplies every other detail.
 const survey = ref<ComplainSurveyLookup | null>(null);
@@ -67,6 +79,15 @@ const surveyReady = computed(
 
 // Evidence uploaded for the complaint, in the same shape as the survey documentation.
 const complainDocumentation = ref<DocumentationApiPayload[]>([]);
+
+watch(
+  () => complainDocumentation.value.length,
+  (len) => {
+    if (len > 0) {
+      errors.evidence = undefined;
+    }
+  },
+);
 const uploadStamp = Date.now();
 const complainFolder = computed(
   () => `complains/survey-${survey.value?.surveyId ?? 0}-${uploadStamp}`,
@@ -150,19 +171,6 @@ function onNikInput(event: Event) {
   errors.nik = undefined;
 }
 
-function lookupErrorMessage(error: unknown) {
-  if (error instanceof ApiError) {
-    if (error.status === 404) {
-      return "Mohon maaf anda masih memiliki komplain yang sedang dalam proses.";
-    }
-    if (error.status === 429) {
-      return "Terlalu banyak percobaan pencarian. Coba lagi beberapa saat lagi.";
-    }
-    return error.message;
-  }
-  return "Gagal mencari data survei. Silakan coba lagi.";
-}
-
 async function searchNik() {
   const nik = form.nik.trim();
   if (!/^\d{16}$/.test(nik)) {
@@ -181,7 +189,11 @@ async function searchNik() {
     survey.value = found;
     return true;
   } catch (error) {
-    errors.nik = lookupErrorMessage(error);
+    if (error instanceof ApiError) {
+      errors.nik = error.message;
+    } else {
+      errors.nik = "Gagal mencari data survei. Silakan coba lagi.";
+    }
     return false;
   } finally {
     searching.value = false;
@@ -192,19 +204,28 @@ async function validateStep(step: number) {
   errors.form = undefined;
 
   if (step === 1) {
+    const found = await searchNik();
+    return found;
+  }
+
+  if (step === 3) {
     errors.complainantName =
       form.complainantName.trim() === "" ? "Nama wajib diisi." : undefined;
     errors.complainantPhone = PHONE_PATTERN.test(form.complainantPhone.trim())
       ? undefined
       : "Nomor HP tidak valid. Contoh: 08123456789.";
-    const found = await searchNik();
-    return found && !errors.complainantName && !errors.complainantPhone;
-  }
-
-  if (step === 3) {
     errors.description =
       form.description.trim() === "" ? "Isi komplain wajib diisi." : undefined;
-    return !errors.description;
+    errors.evidence =
+      complainDocumentation.value.length === 0
+        ? "Bukti pendukung wajib diunggah minimal 1 berkas."
+        : undefined;
+    return (
+      !errors.complainantName &&
+      !errors.complainantPhone &&
+      !errors.description &&
+      !errors.evidence
+    );
   }
 
   return true;
@@ -252,7 +273,14 @@ async function handleSubmit() {
     return;
   }
 
+  confirmDialogOpen.value = true;
+}
+
+async function confirmSubmit() {
+  if (!survey.value) return;
+
   submitting.value = true;
+  errors.form = undefined;
   try {
     await createComplain({
       surveyId: survey.value.surveyId,
@@ -261,13 +289,16 @@ async function handleSubmit() {
       description: form.description.trim(),
       files: complainDocumentation.value,
     });
+    confirmDialogOpen.value = false;
     submitted.value = true;
     scrollToTop();
   } catch (error) {
-    errors.form =
+    confirmDialogOpen.value = false;
+    const message =
       error instanceof ApiError
         ? error.message
         : "Gagal mengajukan komplain. Silakan coba lagi.";
+    toast.error(message);
   } finally {
     submitting.value = false;
   }
@@ -407,53 +438,6 @@ async function handleSubmit() {
                 </p>
               </div>
 
-              <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label
-                    for="complain-name"
-                    class="text-foreground text-xs font-medium"
-                  >
-                    Nama pelapor *
-                  </label>
-                  <Input
-                    id="complain-name"
-                    v-model="form.complainantName"
-                    autocomplete="name"
-                    class="w-full border rounded-lg p-2.5 bg-background focus:ring-2 focus:ring-primary focus:outline-none h-9 text-sm md:text-sm"
-                    :aria-invalid="!!errors.complainantName"
-                  />
-                  <p
-                    v-if="errors.complainantName"
-                    class="text-destructive mt-1 text-xs"
-                  >
-                    {{ errors.complainantName }}
-                  </p>
-                </div>
-                <div>
-                  <label
-                    for="complain-phone"
-                    class="text-foreground text-xs font-medium"
-                  >
-                    Nomor HP *
-                  </label>
-                  <Input
-                    id="complain-phone"
-                    v-model="form.complainantPhone"
-                    type="tel"
-                    autocomplete="tel"
-                    placeholder="08123456789"
-                    class="w-full border rounded-lg p-2.5 bg-background focus:ring-2 focus:ring-primary focus:outline-none h-9 text-sm md:text-sm"
-                    :aria-invalid="!!errors.complainantPhone"
-                  />
-                  <p
-                    v-if="errors.complainantPhone"
-                    class="text-destructive mt-1 text-xs"
-                  >
-                    {{ errors.complainantPhone }}
-                  </p>
-                </div>
-              </div>
-
               <div v-if="surveyReady" class="space-y-4 border-t pt-4">
                 <h3
                   class="text-muted-foreground text-xs font-semibold tracking-wider uppercase"
@@ -512,6 +496,54 @@ async function handleSubmit() {
               <div class="border-b pb-2">
                 <h2 class="text-base font-semibold">Isi Komplain</h2>
               </div>
+
+              <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label
+                    for="complain-name"
+                    class="text-foreground text-xs font-medium"
+                  >
+                    Nama pelapor *
+                  </label>
+                  <Input
+                    id="complain-name"
+                    v-model="form.complainantName"
+                    autocomplete="name"
+                    class="w-full border rounded-lg p-2.5 bg-background focus:ring-2 focus:ring-primary focus:outline-none h-9 text-sm md:text-sm"
+                    :aria-invalid="!!errors.complainantName"
+                  />
+                  <p
+                    v-if="errors.complainantName"
+                    class="text-destructive mt-1 text-xs"
+                  >
+                    {{ errors.complainantName }}
+                  </p>
+                </div>
+                <div>
+                  <label
+                    for="complain-phone"
+                    class="text-foreground text-xs font-medium"
+                  >
+                    Nomor HP *
+                  </label>
+                  <Input
+                    id="complain-phone"
+                    v-model="form.complainantPhone"
+                    type="tel"
+                    autocomplete="tel"
+                    placeholder="08123456789"
+                    class="w-full border rounded-lg p-2.5 bg-background focus:ring-2 focus:ring-primary focus:outline-none h-9 text-sm md:text-sm"
+                    :aria-invalid="!!errors.complainantPhone"
+                  />
+                  <p
+                    v-if="errors.complainantPhone"
+                    class="text-destructive mt-1 text-xs"
+                  >
+                    {{ errors.complainantPhone }}
+                  </p>
+                </div>
+              </div>
+
               <div>
                 <label
                   for="complain-description"
@@ -536,14 +568,17 @@ async function handleSubmit() {
               </div>
             </div>
 
-            <!-- Evidence upload (optional), shown together with the complaint text -->
+            <!-- Evidence upload (wajib), shown together with the complaint text -->
             <div v-show="currentStep === 3">
               <SurveyUploadImage
                 v-model="complainDocumentation"
                 :folder-path="complainFolder"
                 :categories="EVIDENCE_CATEGORIES"
-                title="Unggah Bukti Pendukung"
+                title="Unggah Bukti Pendukung *"
               />
+              <p v-if="errors.evidence" class="text-destructive mt-2 text-xs">
+                {{ errors.evidence }}
+              </p>
             </div>
           </fieldset>
 
@@ -580,6 +615,46 @@ async function handleSubmit() {
             </Button>
           </div>
         </form>
+
+        <!-- Dialog Konfirmasi Kirim Komplain -->
+        <Dialog v-model:open="confirmDialogOpen">
+          <DialogContent class="sm:max-w-md">
+            <DialogHeader class="gap-1.5">
+              <DialogTitle class="text-base"
+                >Konfirmasi Pengajuan Komplain</DialogTitle
+              >
+              <DialogDescription class="text-sm">
+                Apakah Anda yakin data komplain dan bukti pendukung yang
+                dimasukkan sudah benar? Komplain yang telah dikirim tidak dapat
+                diubah kembali.
+              </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter class="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                class="h-9 text-sm"
+                :disabled="submitting"
+                @click="confirmDialogOpen = false"
+              >
+                Periksa Kembali
+              </Button>
+              <Button
+                type="button"
+                class="h-9 text-sm"
+                :disabled="submitting"
+                @click="confirmSubmit"
+              >
+                <RiLoader4Line
+                  v-if="submitting"
+                  class="mr-1 size-4 animate-spin"
+                />
+                Ya, Kirim Komplain
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   </div>
